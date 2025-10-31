@@ -167,13 +167,24 @@ def organize_documentation(root_dir: Path, dry_run: bool = False) -> Dict:
             else:
                 results["errors"].append(f"Não foi possível categorizar: {orphan.name}")
     
-    # Atualizar catálogo
+    # Atualizar catálogo e README
     if not dry_run:
         update_catalog(docs_dir)
+        update_readme_references(root_dir)
         results["created_catalog"] = True
     
     return results
 
+
+def update_readme_references(root_dir: Path):
+    """Atualiza referências no README.md após organização"""
+    try:
+        from corrigir_referencias_readme import fix_references
+        readme_path = root_dir / "README.md"
+        if readme_path.exists():
+            fix_references(readme_path, dry_run=False)
+    except ImportError:
+        pass  # Script não disponível
 
 def update_catalog(docs_dir: Path):
     """Atualiza o catálogo de documentação"""

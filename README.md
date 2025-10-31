@@ -1,139 +1,155 @@
 # 🔥 IgnisBot
 
-Bot Discord para gamificação e sistemas de ranking com conformidade LGPD completa.
+Discord bot for gamification and ranking systems with complete LGPD compliance.
 
 ---
 
-## 📋 Sobre o Projeto
+## 📋 About the Project
 
-O **IgnisBot** é um bot Discord desenvolvido em Python que implementa um sistema de gamificação baseado em pontos e ranks para membros de servidores Discord. O projeto está em conformidade com a LGPD (Lei Geral de Proteção de Dados) e possui documentação técnica e legal completa.
+**IgnisBot** is a Discord bot developed in Python that implements a gamification system based on points and ranks for Discord server members. The project is compliant with LGPD (Brazilian General Data Protection Law) and has complete technical and legal documentation.
+
+### Key Features
+- ⚡ **High Performance:** Cache system and optimized database queries (Phase 1 + 2)
+- 🔒 **LGPD/GDPR Compliant:** Complete data protection implementation
+- 📚 **Well Documented:** 60+ organized documents following IEEE/ISO standards
+- 🤖 **Automated Maintenance:** Self-organizing documentation system
+- 🚀 **Production Ready:** CMMI Level 4 maturity
 
 ---
 
 ## ✨ Funcionalidades Principais
 
-### Gamificação
-- Sistema de pontos e ranking
-- Leaderboard dos top 10 usuários
-- Sistema de ranks progressivo
-- Logging de eventos de voz
+### Gamification
+- Points and ranking system
+- Top 10 leaderboard
+- Progressive rank system
+- Voice event logging
 
-### Privacidade e Conformidade LGPD
-- `/export_my_data` - Exportação de dados pessoais
-- `/delete_my_data` - Direito ao esquecimento
-- `/correct_my_data` - Correção de dados incorretos
-- `/consent` - Gerenciamento de consentimento
+### Privacy and LGPD Compliance
+- `/export_my_data` - Export personal data
+- `/delete_my_data` - Right to be forgotten
+- `/correct_my_data` - Request data correction
+- `/consent` - Manage consent
 
-### Documentação Legal
-- `/privacy` - Política de Privacidade
-- `/terms` - Termos de Uso
+### Legal Documentation
+- `/privacy` - Privacy Policy
+- `/terms` - Terms of Use
 - `/sla` - Service Level Agreement
 
 ---
 
 ## 🚀 Configuração Rápida
 
-### 1. Pré-requisitos
+### 1. Prerequisites
 - Python 3.10+
-- MySQL 5.7+ ou 8.0+
+- MySQL 5.7+ or 8.0+
 - Discord Bot Token
 
-### 2. Instalação
+### 2. Installation
 
 ```bash
-# Clonar repositório
-git clone [seu-repositorio]
+# Clone repository
+git clone https://github.com/Japa1413/IgnisBot.git
 cd IgnisBot
 
-# Instalar dependências
+# Install dependencies
 pip install -r requirements.txt
 
-# Configurar ambiente
+# Configure environment
 cp env.example .env
-# Editar .env com suas credenciais
+# Edit .env with your credentials
 ```
 
-### 3. Configurar Banco de Dados
+### 3. Database Setup
 
-Execute o script SQL:
+Execute the SQL script:
 ```bash
 mysql -u root -p < Ignis.sql
 ```
 
-### 4. Executar Bot
+### 4. Run Bot
 
 ```bash
 python ignis_main.py
 ```
 
+**📖 Full Setup Guide:** [`docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md`](docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md)
+
 ---
 
-## ⚙️ Configuração
+## ⚙️ Configuration
 
-### Variáveis de Ambiente (.env)
+### Environment Variables (.env)
 
-**Obrigatórias:**
+**Required:**
 ```env
-DISCORD_TOKEN=seu_token_aqui
-DISCORD_CLIENT_ID=seu_client_id
-DISCORD_GUILD_ID=seu_guild_id
+DISCORD_TOKEN=your_token_here
+DISCORD_CLIENT_ID=your_client_id
+DISCORD_GUILD_ID=your_guild_id
 DB_HOST=localhost
-DB_USER=seu_usuario
-DB_PASSWORD=sua_senha
+DB_USER=your_username
+DB_PASSWORD=your_password
 DB_NAME=ignis
 ```
 
-**Opcionais:**
+**Optional:**
 ```env
-CONTROLLER_EMAIL=email@exemplo.com  # Para conformidade LGPD
+CONTROLLER_EMAIL=email@example.com  # For LGPD compliance
 PRIVACY_POLICY_URL=https://...
 TERMS_OF_USE_URL=https://...
+DB_POOL_MIN=2      # Database connection pool min (default: 2)
+DB_POOL_MAX=10     # Database connection pool max (default: 10)
+STAFF_CMDS_CHANNEL_ID=your_channel_id  # Restricted commands channel
 ```
 
-📖 **Guia Completo:** Veja `SETUP_CRITICO.md` para instruções detalhadas.
+📖 **Full Setup Guide:** See [`docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md`](docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md) for detailed instructions.
 
 ---
 
 ## 📚 Documentação
 
 ### Documentação Técnica
-- 📘 [Arquitetura do Sistema](docs/ARQUITETURA.md)
-- 🔒 [Análise de Segurança](docs/ANALISE_SEGURANCA.md)
-- 📊 [Relatório de Auditoria](RELATORIO_AUDITORIA_INICIAL.md)
+- 📘 [Arquitetura do Sistema](docs/02_ARQUITETURA/ARQUITETURA_SISTEMA.md)
+- 🔒 [Análise de Segurança](docs/02_ARQUITETURA/ANALISE_SEGURANCA.md)
+- 📊 [Relatório de Auditoria Inicial](docs/07_AUDITORIA/RELATORIO_INICIAL.md)
+- 📋 [Catálogo Completo](docs/CATALOGO_DOCUMENTACAO.md)
 
 ### Documentação Legal
-- 🔒 [Política de Privacidade](docs/POLITICA_PRIVACIDADE.md)
-- 📋 [Termos de Uso](docs/TERMOS_USO.md)
-- 📊 [SLA - Service Level Agreement](docs/SLA.md)
-- ⚖️ [Conformidade LGPD](docs/LGPD_COMPLIANCE.md)
-- 🚨 [Plano de Resposta a Incidentes](docs/PLANO_RESPOSTA_INCIDENTES.md)
+- 🔒 [Política de Privacidade](docs/06_LEGAL_COMPLIANCE/POLITICA_PRIVACIDADE.md)
+- 📋 [Termos de Uso](docs/06_LEGAL_COMPLIANCE/TERMOS_USO.md)
+- 📊 [SLA - Service Level Agreement](docs/06_LEGAL_COMPLIANCE/SLA.md)
+- ⚖️ [Conformidade LGPD](docs/06_LEGAL_COMPLIANCE/LGPD_COMPLIANCE.md)
+- 🚨 [Plano de Resposta a Incidentes](docs/06_LEGAL_COMPLIANCE/PLANO_INCIDENTES.md)
 
 ### Guias e Checklists
-- ✅ [Checklist 100% Conformidade](CHECKLIST_100_CONFORMIDADE.md)
-- 🔧 [Configurar DPO](CONFIGURAR_DPO.md)
-- 📈 [Progresso da Auditoria](PROGRESSO_AUDITORIA.md)
+- ✅ [Checklist de Conformidade](docs/08_REFERENCIA/CHECKLIST_CONFORMIDADE.md)
+- 🔧 [Configurar DPO](docs/03_DESENVOLVIMENTO/CONFIGURAR_DPO.md)
+- 📈 [Progresso da Auditoria](docs/01_GESTAO_PROJETO/PROGRESSO_AUDITORIA.md)
+- 📚 [Índice Completo](docs/08_REFERENCIA/INDICE.md)
 
 ---
 
-## 🎯 Status do Projeto
+## 🎯 Project Status
 
-### Maturidade
-- **Nível CMMI:** 4 (Gerenciado)
-- **Conformidade LGPD:** 95% (100% após configurar DPO)
-- **Prontidão para Produção:** ✅ Sim
+### Maturity
+- **CMMI Level:** 4 (Managed)
+- **LGPD Compliance:** 95% (100% after configuring DPO)
+- **Production Ready:** ✅ Yes
 
-### Segurança
-- ✅ Credenciais protegidas
-- ✅ SQL Injection protegido (100%)
-- ✅ Logging estruturado
-- ✅ Zero vulnerabilidades críticas
+### Security
+- ✅ Protected credentials (environment variables)
+- ✅ SQL Injection protected (100% parameterized queries)
+- ✅ Structured logging
+- ✅ Zero critical vulnerabilities
+- ✅ Cache system with TTL
+- ✅ Connection pool optimization
 
-### Conformidade Legal
-- ✅ Política de Privacidade completa
-- ✅ Termos de Uso completos
-- ✅ Todos os direitos do titular (6/6)
-- ✅ Plano de resposta a incidentes
-- ⚠️ DPO: Pendente configurar (15 min)
+### Legal Compliance
+- ✅ Complete Privacy Policy
+- ✅ Complete Terms of Use
+- ✅ All data subject rights (6/6)
+- ✅ Incident response plan
+- ⚠️ DPO: Pending configuration (15 min)
 
 ---
 
@@ -147,24 +163,24 @@ TERMS_OF_USE_URL=https://...
 - ✅ Controle de acesso por canal
 
 ### Para 100% Conformidade
-- ⚠️ Configurar DPO (15 minutos) - Veja `CONFIGURAR_DPO.md`
+- ⚠️ Configure DPO (15 minutes) - See [`docs/03_DESENVOLVIMENTO/CONFIGURAR_DPO.md`](docs/03_DESENVOLVIMENTO/CONFIGURAR_DPO.md)
 
 ---
 
 ## 🛠️ Comandos Disponíveis
 
 ### Gamificação
-- `/userinfo [member]` - Informações do usuário
-- `/add <member> <points> [reason]` - Adicionar pontos (admin)
-- `/remove <member> <points> [reason]` - Remover pontos (admin)
-- `/vc_log <amount> <event> [evidence]` - Registrar pontos de voz (admin)
-- `/leaderboard` - Top 10 usuários
+- `/userinfo [member]` - Display user information card
+- `/add <member> <points> [reason]` - Add points to user (admin only)
+- `/remove <member> <points> [reason]` - Remove points from user (admin only)
+- `/vc_log <amount> <event> [evidence]` - Log voice channel points (admin only)
+- `/leaderboard` - Display top 10 users
 
 ### Privacidade (LGPD)
-- `/export_my_data` - Exportar seus dados
-- `/delete_my_data` - Deletar todos os seus dados
-- `/correct_my_data` - Solicitar correção de dados
-- `/consent [action]` - Gerenciar consentimento
+- `/export_my_data` - Export your personal data
+- `/delete_my_data` - Delete all your data (right to be forgotten)
+- `/correct_my_data` - Request data correction
+- `/consent [action]` - Manage consent (grant/revoke/status)
 
 ### Documentação Legal
 - `/privacy` - Política de Privacidade
@@ -189,15 +205,26 @@ IgnisBot/
 │   ├── config.py       # Configurações
 │   ├── database.py     # Banco de dados
 │   ├── logger.py       # Sistema de logging
+│   ├── cache.py        # Cache com TTL
 │   ├── audit_log.py    # Auditoria LGPD
-│   └── consent_manager.py
-├── docs/               # Documentação
-│   ├── ARQUITETURA.md
-│   ├── ANALISE_SEGURANCA.md
-│   ├── POLITICA_PRIVACIDADE.md
-│   ├── TERMOS_USO.md
-│   ├── SLA.md
-│   └── LGPD_COMPLIANCE.md
+│   ├── consent_manager.py
+│   └── checks.py       # Validações de comandos
+├── scripts/            # Scripts de automação
+│   ├── organizar_documentacao.py
+│   ├── validar_documentacao.py
+│   └── validar_performance.py
+├── docs/               # Documentação organizada
+│   ├── 01_GESTAO_PROJETO/    # Gestão e planejamento
+│   ├── 02_ARQUITETURA/        # Arquitetura técnica
+│   ├── 03_DESENVOLVIMENTO/    # Guias de desenvolvimento
+│   ├── 04_TESTES/             # Testes
+│   ├── 05_OPERACAO/           # Operação e deploy
+│   ├── 06_LEGAL_COMPLIANCE/   # Legal e LGPD
+│   ├── 07_AUDITORIA/          # Relatórios de auditoria
+│   ├── 08_REFERENCIA/         # Referência rápida
+│   ├── 09_OTIMIZACAO/         # Otimizações
+│   ├── README.md              # Índice principal
+│   └── CATALOGO_DOCUMENTACAO.md
 ├── ignis_main.py       # Entry point
 ├── requirements.txt    # Dependências
 └── .env               # Variáveis de ambiente (não commitado)
@@ -205,28 +232,28 @@ IgnisBot/
 
 ---
 
-## 🔐 Segurança
+## 🔐 Security
 
-**⚠️ IMPORTANTE:**
-- NUNCA faça commit do arquivo `.env`
-- Revogue credenciais antigas que estavam hardcoded
-- Configure todas as variáveis de ambiente antes de executar
+**⚠️ IMPORTANT:**
+- NEVER commit the `.env` file
+- Revoke old credentials that were hardcoded
+- Configure all environment variables before running
 
-Veja `SETUP_CRITICO.md` para instruções de segurança.
+See [`docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md`](docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md) for security instructions.
 
 ---
 
-## ⚖️ Conformidade LGPD
+## ⚖️ LGPD Compliance
 
-O IgnisBot está em conformidade com a LGPD (Lei Geral de Proteção de Dados):
+IgnisBot is compliant with LGPD (Brazilian General Data Protection Law):
 
-- ✅ Sistema de consentimento implementado
-- ✅ Direitos do titular implementados (6/6)
-- ✅ Auditoria completa (LGPD Art. 10)
-- ✅ Política de Privacidade completa
-- ✅ Plano de resposta a incidentes
+- ✅ Consent system implemented
+- ✅ Data subject rights implemented (6/6)
+- ✅ Complete audit trail (LGPD Art. 10)
+- ✅ Complete Privacy Policy
+- ✅ Incident response plan
 
-**Para 100%:** Configure o DPO (veja `CONFIGURAR_DPO.md`)
+**For 100%:** Configure DPO (see [`docs/03_DESENVOLVIMENTO/CONFIGURAR_DPO.md`](docs/03_DESENVOLVIMENTO/CONFIGURAR_DPO.md))
 
 ---
 
@@ -244,29 +271,49 @@ O IgnisBot está em conformidade com a LGPD (Lei Geral de Proteção de Dados):
 
 ## 📞 Suporte
 
-- **Documentação:** Veja pasta `docs/`
-- **Conformidade LGPD:** `docs/LGPD_COMPLIANCE.md`
-- **Configuração:** `SETUP_CRITICO.md`
+- **Documentação:** Veja [`docs/README.md`](docs/README.md) para navegação completa
+- **Conformidade LGPD:** [`docs/06_LEGAL_COMPLIANCE/LGPD_COMPLIANCE.md`](docs/06_LEGAL_COMPLIANCE/LGPD_COMPLIANCE.md)
+- **Configuration:** [`docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md`](docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md)
+- **Catálogo Completo:** [`docs/CATALOGO_DOCUMENTACAO.md`](docs/CATALOGO_DOCUMENTACAO.md)
 
 ---
 
 ## 🎯 Roadmap
 
-### Completo ✅
-- [x] Segurança de credenciais
-- [x] Conformidade LGPD (95%)
-- [x] Documentação legal completa
-- [x] Sistema de logging
-- [x] Análise de segurança
+### Completed ✅
+- [x] Credential security
+- [x] LGPD compliance (95%)
+- [x] Complete legal documentation
+- [x] Logging system
+- [x] Security analysis
+- [x] Performance optimizations (Phase 1 + 2)
+- [x] Cache system with TTL
+- [x] Automated documentation system
+- [x] All commands standardized to English (US)
 
-### Pendente (Opcional)
-- [ ] Testes automatizados
+### Pending (Optional)
+- [ ] Automated tests
 - [ ] CI/CD pipeline
 - [ ] Rate limiting
-- [ ] Configurar DPO (15 min para 100%)
+- [ ] Configure DPO (15 min for 100%)
 
 ---
 
-**Desenvolvido com:** Python 3.10+, discord.py, aiomysql  
-**Conformidade:** LGPD (95% → 100% após DPO)  
-**Status:** ✅ Pronto para Produção
+## 📚 Documentation System
+
+**Automated Organization:**
+- 📦 Self-organizing documentation (`scripts/organizar_documentacao.py`)
+- ✅ Pre-commit validation (Git hook)
+- 📋 Complete catalog (auto-updated)
+
+**Quick Links:**
+- 📖 [Documentation Index](docs/README.md)
+- 📚 [Complete Catalog](docs/CATALOGO_DOCUMENTACAO.md)
+- 📝 [Documentation Standard](docs/PADRAO_DOCUMENTACAO.md)
+
+---
+
+**Developed with:** Python 3.10+, discord.py, aiomysql  
+**Compliance:** LGPD (95% → 100% after DPO)  
+**Status:** ✅ Production Ready  
+**Performance:** Optimized (cache + connection pool)
