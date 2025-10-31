@@ -17,7 +17,7 @@ class AddPointsCog(commands.Cog):
     @app_commands.describe(
         member="Target member",
         points="Points to add (positive)",
-        reason="Reason for adding points (optional)"
+        reason="Reason for adding points (REQUIRED)"
     )
     @appcmd_channel_only(STAFF_CMDS_CHANNEL_ID)  # slash guard
     async def add(
