@@ -18,8 +18,8 @@ _CONN_KW = dict(
     db=DB_NAME,
     charset="utf8mb4",
     autocommit=True,
-    connect_timeout=5,   # <-- suportado
-    # read_timeout / write_timeout NÃO são suportados pelo aiomysql
+    connect_timeout=5,   # <-- supported
+    # read_timeout / write_timeout are NOT supported by aiomysql
 )
 
 async def initialize_db():

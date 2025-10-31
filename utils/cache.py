@@ -13,7 +13,7 @@ from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Cache em memória: {user_id: (data, timestamp)}
+# In-memory cache: {user_id: (data, timestamp)}
 _user_cache: Dict[int, Tuple[dict, datetime]] = {}
 
 # Default TTL: 30 seconds
