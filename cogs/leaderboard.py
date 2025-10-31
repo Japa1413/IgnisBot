@@ -23,7 +23,7 @@ class LeaderboardCog(commands.Cog):
             await interaction.followup.send("❌ Database not initialized.")
             return
 
-        # Usar pool de conexões ao invés de criar conexão direta
+        # Use connection pool instead of creating direct connection
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cursor:
                 await cursor.execute(
@@ -35,14 +35,14 @@ class LeaderboardCog(commands.Cog):
             await interaction.followup.send("The Leaderboard is empty at the moment")
             return
 
-        # Criando um embed para a leaderboard
+        # Creating an embed for the leaderboard
         embed = discord.Embed(
             title="🏆 Leaderboard - Top 10",
             color=discord.Color.gold()
         )
         embed.set_thumbnail(url=self.bot.user.avatar.url)
 
-        # OPTIMIZAÇÃO: Buscar todos os usuários em paralelo (evita N+1 query problem)
+        # OPTIMIZATION: Fetch all users in parallel (avoids N+1 query problem)
         user_ids = [row["user_id"] for row in leaderboard]
         user_fetches = [self.bot.fetch_user(uid) for uid in user_ids]
         users_results = await asyncio.gather(*user_fetches, return_exceptions=True)

@@ -120,11 +120,11 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
             from utils.config import STAFF_CMDS_CHANNEL_ID
             if cmd_name in ['add', 'remove', 'vc_log', 'userinfo']:
                 try:
-                    # Tentar obter o nome do canal permitido
+                    # Try to get allowed channel name
                     allowed_channel = bot.get_channel(STAFF_CMDS_CHANNEL_ID)
-                    channel_name = f"**#{allowed_channel.name}**" if allowed_channel else f"canal com ID `{STAFF_CMDS_CHANNEL_ID}`"
-                    current_channel_name = f"#{interaction.channel.name}" if interaction.channel else "canal desconhecido"
-                    error_msg = f"❌ The `/{cmd_name}` command can only be used in {channel_name}.\n📍 Você está atualmente em: **{current_channel_name}**"
+                    channel_name = f"**#{allowed_channel.name}**" if allowed_channel else f"channel with ID `{STAFF_CMDS_CHANNEL_ID}`"
+                    current_channel_name = f"#{interaction.channel.name}" if interaction.channel else "unknown channel"
+                    error_msg = f"❌ The `/{cmd_name}` command can only be used in {channel_name}.\n📍 You are currently in: **{current_channel_name}**"
                 except Exception:
                     error_msg = f"❌ The `/{cmd_name}` command can only be used in a specific channel (ID: {STAFF_CMDS_CHANNEL_ID})."
         

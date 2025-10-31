@@ -1,9 +1,9 @@
 # utils/consent_manager.py
 """
-Gerenciador de Consentimento LGPD
+LGPD Consent Manager
 
-Gerencia consentimento de usuários para processamento de dados pessoais,
-conforme requisitos da LGPD (Art. 7º, I) e GDPR (Art. 6º, 1(a)).
+Manages user consent for personal data processing,
+according to LGPD (Art. 7º, I) and GDPR (Art. 6º, 1(a)) requirements.
 """
 
 from __future__ import annotations
@@ -13,25 +13,25 @@ from datetime import datetime
 import aiomysql
 from utils.database import get_pool
 
-# Versão atual da política de privacidade
+# Current privacy policy version
 CURRENT_CONSENT_VERSION = "1.0"
 
-# Base legal padrão (pode ser alterada conforme necessário)
+# Default legal basis (can be changed as needed)
 DEFAULT_BASE_LEGAL = "consentimento"  # LGPD Art. 7º, I
 
 
 async def has_consent(user_id: int) -> bool:
     """
-    Verifica se o usuário deu consentimento para processamento de dados.
+    Checks if user has given consent for data processing.
     
     Args:
-        user_id: ID do usuário
+        user_id: User ID
     
     Returns:
-        True se o usuário deu consentimento, False caso contrário
+        True if user gave consent, False otherwise
     
     Raises:
-        RuntimeError: Se o pool de banco não estiver inicializado
+        RuntimeError: If database pool is not initialized
     """
     pool = get_pool()
     
@@ -53,24 +53,24 @@ async def give_consent(
     version: str = CURRENT_CONSENT_VERSION
 ) -> bool:
     """
-    Registra consentimento do usuário para processamento de dados.
+    Records user consent for data processing.
     
     Args:
-        user_id: ID do usuário
-        base_legal: Base legal para processamento (padrão: "consentimento")
-        version: Versão da política de privacidade aceita
+        user_id: User ID
+        base_legal: Legal basis for processing (default: "consentimento")
+        version: Accepted privacy policy version
     
     Returns:
-        True se o consentimento foi registrado com sucesso
+        True if consent was recorded successfully
     
     Raises:
-        RuntimeError: Se o pool de banco não estiver inicializado
+        RuntimeError: If database pool is not initialized
     """
     pool = get_pool()
     
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
-            # Usar INSERT ... ON DUPLICATE KEY UPDATE para upsert
+            # Use INSERT ... ON DUPLICATE KEY UPDATE for upsert
             await cursor.execute("""
                 INSERT INTO user_consent 
                 (user_id, consent_date, consent_version, base_legal, consent_given)
@@ -88,20 +88,20 @@ async def give_consent(
 
 async def revoke_consent(user_id: int) -> bool:
     """
-    Revoga o consentimento do usuário (LGPD Art. 18, VI).
+    Revokes user consent (LGPD Art. 18, VI).
     
-    Quando o consentimento é revogado, os dados ainda podem ser mantidos
-    se houver outra base legal aplicável (ex: cumprimento de obrigação legal).
-    A exclusão completa deve ser feita via delete_user_data().
+    When consent is revoked, data may still be retained
+    if there is another applicable legal basis (e.g.: legal obligation fulfillment).
+    Complete deletion must be done via delete_user_data().
     
     Args:
-        user_id: ID do usuário
+        user_id: User ID
     
     Returns:
-        True se o consentimento foi revogado com sucesso
+        True if consent was revoked successfully
     
     Raises:
-        RuntimeError: Se o pool de banco não estiver inicializado
+        RuntimeError: If database pool is not initialized
     """
     pool = get_pool()
     
@@ -119,16 +119,16 @@ async def revoke_consent(user_id: int) -> bool:
 
 async def get_consent_info(user_id: int) -> Optional[Dict]:
     """
-    Obtém informações sobre o consentimento do usuário.
+    Get user consent information.
     
     Args:
-        user_id: ID do usuário
+        user_id: User ID
     
     Returns:
-        Dict com informações de consentimento ou None se não encontrado
+        Dict with consent information or None if not found
     
     Raises:
-        RuntimeError: Se o pool de banco não estiver inicializado
+        RuntimeError: If database pool is not initialized
     """
     pool = get_pool()
     
@@ -151,27 +151,27 @@ async def get_consent_info(user_id: int) -> Optional[Dict]:
 
 async def check_consent_required(user_id: int) -> bool:
     """
-    Verifica se o usuário precisa dar consentimento.
+    Checks if user needs to give consent.
     
-    Retorna True se:
-    - O usuário não tem registro de consentimento, OU
-    - O consentimento foi dado em versão antiga da política
+    Returns True if:
+    - User has no consent record, OR
+    - Consent was given in old policy version
     
     Args:
-        user_id: ID do usuário
+        user_id: User ID
     
     Returns:
-        True se o consentimento é necessário
+        True if consent is required
     """
     consent_info = await get_consent_info(user_id)
     
     if not consent_info:
-        return True  # Sem registro = precisa dar consentimento
+        return True  # No record = needs to give consent
     
     if not consent_info.get("consent_given", False):
-        return True  # Consentimento revogado
+        return True  # Consent revoked
     
-    # Verificar se a versão do consentimento está atualizada
+    # Check if consent version is up to date
     consent_version = consent_info.get("consent_version", "0.0")
     return consent_version != CURRENT_CONSENT_VERSION
 

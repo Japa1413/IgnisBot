@@ -73,20 +73,20 @@ class VCLogCog(commands.Cog):
         embeds: List[discord.Embed] = []
         attendees: List[str] = []
 
-        # OPTIMIZAÇÃO: Processar membros em paralelo onde possível
+        # OPTIMIZATION: Process members in parallel where possible
         async def process_member(member: discord.Member) -> Optional[tuple]:
-            """Processa um membro e retorna embed e mention"""
+            """Process a member and return embed and mention"""
             try:
                 await ensure_user_exists(member.id)
                 before_data = await get_user(member.id)
                 before = int(before_data["points"]) if before_data else 0
                 
-                # OPTIMIZAÇÃO: update_points retorna novo valor diretamente
+                # OPTIMIZATION: update_points returns new value directly
                 after = await update_points(
                     member.id,
                     amount,
                     performed_by=interaction.user.id,
-                    purpose=f"Adição de pontos via /vc_log: {event}"
+                    purpose=f"Points addition via /vc_log: {event}"
                 )
 
                 e = discord.Embed(title="Points Added", color=discord.Color.dark_green())
@@ -109,7 +109,7 @@ class VCLogCog(commands.Cog):
                 )
                 return (err, member.mention)
 
-        # 4) Processar todos os membros em paralelo
+        # 4) Process all members in parallel
         tasks = [process_member(member) for member in members]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         

@@ -1,9 +1,9 @@
 # utils/logger.py
 """
-Sistema de Logging Estruturado para IgnisBot
+Structured Logging System for IgnisBot
 
-Implementa logging estruturado com rotação de arquivos e níveis configuráveis.
-Suporta auditoria LGPD e logging de segurança.
+Implements structured logging with file rotation and configurable levels.
+Supports LGPD audit and security logging.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from utils.config import LOG_LEVEL, LOG_FILE, LOG_MAX_SIZE, LOG_BACKUP_COUNT
 
 
 class StructuredFormatter(logging.Formatter):
-    """Formatador JSON para logs estruturados (facilita parsing e análise)"""
+    """JSON formatter for structured logs (facilitates parsing and analysis)"""
     
     def format(self, record: logging.LogRecord) -> str:
         log_data = {
@@ -32,7 +32,7 @@ class StructuredFormatter(logging.Formatter):
             "line": record.lineno,
         }
         
-        # Adicionar contexto adicional se disponível
+        # Add additional context if available
         if hasattr(record, "user_id"):
             log_data["user_id"] = record.user_id
         if hasattr(record, "action"):
@@ -40,7 +40,7 @@ class StructuredFormatter(logging.Formatter):
         if hasattr(record, "extra_data"):
             log_data["extra_data"] = record.extra_data
             
-        # Adicionar exception se houver
+        # Add exception if present
         if record.exc_info:
             log_data["exception"] = self.formatException(record.exc_info)
             
@@ -55,41 +55,41 @@ def setup_logger(
     backup_count: int = 5
 ) -> logging.Logger:
     """
-    Configura e retorna um logger estruturado.
+    Configure and return a structured logger.
     
     Args:
-        name: Nome do logger
-        log_file: Caminho do arquivo de log (None = apenas console)
-        log_level: Nível de log (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        max_bytes: Tamanho máximo do arquivo antes de rotação
-        backup_count: Número de arquivos de backup a manter
+        name: Logger name
+        log_file: Log file path (None = console only)
+        log_level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        max_bytes: Maximum file size before rotation
+        backup_count: Number of backup files to keep
     
     Returns:
-        Logger configurado
+        Configured logger
     """
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
     
-    # Evitar duplicação de handlers
+    # Avoid handler duplication
     if logger.handlers:
         return logger
     
-    # Formato para console (legível)
+    # Format for console (readable)
     console_format = logging.Formatter(
         "[%(asctime)s] [%(levelname)-8s] [%(name)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
     
-    # Formato JSON para arquivo (estruturado)
+    # JSON format for file (structured)
     file_format = StructuredFormatter()
     
-    # Handler para console
+    # Handler for console
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(console_format)
     logger.addHandler(console_handler)
     
-    # Handler para arquivo (se especificado)
+    # Handler for file (if specified)
     if log_file:
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -100,25 +100,25 @@ def setup_logger(
             backupCount=backup_count,
             encoding='utf-8'
         )
-        file_handler.setLevel(logging.DEBUG)  # Arquivo recebe todos os níveis
+        file_handler.setLevel(logging.DEBUG)  # File receives all levels
         file_handler.setFormatter(file_format)
         logger.addHandler(file_handler)
     
     return logger
 
 
-# Logger global configurado
+# Global configured logger
 _LOGGER: Optional[logging.Logger] = None
 
 def get_logger(name: str = "ignisbot") -> logging.Logger:
     """
-    Obtém o logger global configurado.
+    Get the global configured logger.
     
     Args:
-        name: Nome do logger (padrão: "ignisbot")
+        name: Logger name (default: "ignisbot")
     
     Returns:
-        Logger configurado
+        Configured logger
     """
     global _LOGGER
     if _LOGGER is None:
@@ -141,15 +141,15 @@ def log_data_access(
     details: Optional[Dict[str, Any]] = None
 ):
     """
-    Registra acesso a dados pessoais (LGPD Art. 10).
+    Logs personal data access (LGPD Art. 10).
     
     Args:
-        user_id: ID do usuário cujos dados foram acessados
-        action_type: Tipo de ação (CREATE, READ, UPDATE, DELETE, EXPORT, etc.)
-        data_type: Tipo de dado acessado (user_data, points, rank, etc.)
-        performed_by: ID do usuário que realizou a ação (None = próprio usuário)
-        purpose: Finalidade do acesso
-        details: Detalhes adicionais da operação
+        user_id: ID of user whose data was accessed
+        action_type: Action type (CREATE, READ, UPDATE, DELETE, EXPORT, etc.)
+        data_type: Type of data accessed (user_data, points, rank, etc.)
+        performed_by: ID of user who performed the action (None = user themselves)
+        purpose: Purpose of access
+        details: Additional operation details
     """
     logger = get_logger("ignisbot.audit")
     

@@ -1,8 +1,8 @@
 # utils/audit_log.py
 """
-Sistema de Auditoria de Dados Pessoais (LGPD Art. 10)
+Personal Data Audit System (LGPD Art. 10)
 
-Registra todas as operações realizadas com dados pessoais para conformidade legal.
+Records all operations performed with personal data for legal compliance.
 """
 
 from __future__ import annotations
@@ -23,26 +23,26 @@ async def log_data_operation(
     details: Optional[Dict[str, Any]] = None
 ) -> None:
     """
-    Registra uma operação com dados pessoais no banco de dados.
+    Logs a personal data operation in the database.
     
-    Tipos de ação:
-        - CREATE: Criação de registro
-        - READ: Leitura de dados
-        - UPDATE: Atualização de dados
-        - DELETE: Exclusão de dados
-        - EXPORT: Exportação de dados
-        - ACCESS: Acesso geral aos dados
+    Action types:
+        - CREATE: Record creation
+        - READ: Data reading
+        - UPDATE: Data update
+        - DELETE: Data deletion
+        - EXPORT: Data export
+        - ACCESS: General data access
     
     Args:
-        user_id: ID do usuário cujos dados foram manipulados
-        action_type: Tipo de ação realizada
-        data_type: Tipo de dado (user_data, points, rank, consent, etc.)
-        performed_by: ID do usuário/admin que realizou a ação (None = próprio usuário)
-        purpose: Finalidade da operação (ex: "Atualização de pontos por evento")
-        details: Detalhes adicionais em formato dict (será serializado como JSON)
+        user_id: ID of user whose data was manipulated
+        action_type: Type of action performed
+        data_type: Data type (user_data, points, rank, consent, etc.)
+        performed_by: ID of user/admin who performed the action (None = user themselves)
+        purpose: Purpose of the operation (e.g.: "Points update for event")
+        details: Additional details in dict format (will be serialized as JSON)
     
     Raises:
-        RuntimeError: Se o pool de banco não estiver inicializado
+        RuntimeError: If database pool is not initialized
     """
     pool = get_pool()
     
@@ -69,17 +69,17 @@ async def get_user_audit_history(
     limit: int = 100
 ) -> list[Dict[str, Any]]:
     """
-    Obtém o histórico de auditoria de um usuário.
+    Get audit history for a user.
     
     Args:
-        user_id: ID do usuário
-        limit: Número máximo de registros a retornar
+        user_id: User ID
+        limit: Maximum number of records to return
     
     Returns:
-        Lista de registros de auditoria ordenados por timestamp (mais recente primeiro)
+        List of audit records ordered by timestamp (most recent first)
     
     Raises:
-        RuntimeError: Se o pool de banco não estiver inicializado
+        RuntimeError: If database pool is not initialized
     """
     pool = get_pool()
     
@@ -116,16 +116,16 @@ async def get_user_audit_history(
 
 async def delete_user_audit_logs(user_id: int) -> int:
     """
-    Remove todos os logs de auditoria de um usuário (usado quando usuário exerce direito ao esquecimento).
+    Remove all audit logs for a user (used when user exercises right to be forgotten).
     
     Args:
-        user_id: ID do usuário
+        user_id: User ID
     
     Returns:
-        Número de registros deletados
+        Number of deleted records
     
     Raises:
-        RuntimeError: Se o pool de banco não estiver inicializado
+        RuntimeError: If database pool is not initialized
     """
     pool = get_pool()
     

@@ -29,12 +29,12 @@ class RemovePointsCog(commands.Cog):
             return
 
         before = int(user["points"])
-        # OPTIMIZAÇÃO: update_points agora retorna o novo valor diretamente
+        # OPTIMIZATION: update_points now returns new value directly
         after = await update_points(
             member.id,
             -abs(points),
             performed_by=interaction.user.id,
-            purpose=f"Remoção de pontos via /remove: {reason}"
+            purpose=f"Points removal via /remove: {reason}"
         )
 
         embed = discord.Embed(title="Points Revoked", color=discord.Color.red())

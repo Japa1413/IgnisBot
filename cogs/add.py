@@ -35,12 +35,12 @@ class AddPointsCog(commands.Cog):
                 user = await get_user(member.id)
 
             before = int(user["points"])
-            # OPTIMIZAÇÃO: update_points agora retorna o novo valor diretamente
+            # OPTIMIZATION: update_points now returns new value directly
             after = await update_points(
                 member.id,
                 points,
                 performed_by=interaction.user.id,
-                purpose=f"Adição de pontos via /add: {reason}"
+                purpose=f"Points addition via /add: {reason}"
             )
 
             embed = discord.Embed(title="Points Added", color=discord.Color.green())

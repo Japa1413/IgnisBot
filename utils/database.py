@@ -26,17 +26,17 @@ async def initialize_db():
     """Create a global connection pool and ensure tables exist."""
     global _POOL
     if _POOL is None:
-        # OPTIMIZAÇÃO FASE 2: Pool configurável via ambiente
+        # OPTIMIZATION PHASE 2: Pool configurable via environment
         _POOL = await aiomysql.create_pool(
             minsize=DB_POOL_MIN,
             maxsize=DB_POOL_MAX,
             **_CONN_KW
         )
-        logger.info(f"Database pool inicializado: {DB_POOL_MIN}-{DB_POOL_MAX} conexões")
+        logger.info(f"Database pool initialized: {DB_POOL_MIN}-{DB_POOL_MAX} connections")
 
     async with _POOL.acquire() as conn:
         async with conn.cursor() as cursor:
-            # Tabela principal de usuários
+            # Main users table
             await cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     user_id BIGINT PRIMARY KEY,
@@ -48,7 +48,7 @@ async def initialize_db():
                 )
             """)
             
-            # Tabela de consentimento LGPD
+            # LGPD consent table
             await cursor.execute("""
                 CREATE TABLE IF NOT EXISTS user_consent (
                     user_id BIGINT PRIMARY KEY,
@@ -61,7 +61,7 @@ async def initialize_db():
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """)
             
-            # Tabela de auditoria de dados pessoais (LGPD Art. 10)
+            # Personal data audit table (LGPD Art. 10)
             await cursor.execute("""
                 CREATE TABLE IF NOT EXISTS data_audit_log (
                     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -78,8 +78,8 @@ async def initialize_db():
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """)
             
-            # Índice para otimizar queries de leaderboard (ORDER BY points DESC)
-            # Verificar se o índice já existe antes de criar (IF NOT EXISTS não funciona em todas versões MySQL)
+            # Index to optimize leaderboard queries (ORDER BY points DESC)
+            # Check if index already exists before creating (IF NOT EXISTS doesn't work in all MySQL versions)
             try:
                 await cursor.execute("""
                     SELECT COUNT(*) as count
@@ -96,42 +96,42 @@ async def initialize_db():
                         CREATE INDEX idx_points 
                         ON users(points DESC)
                     """)
-                    logger.info("Índice idx_points criado com sucesso")
+                    logger.info("Index idx_points created successfully")
                 else:
-                    logger.debug("Índice idx_points já existe")
+                    logger.debug("Index idx_points already exists")
             except Exception as e:
-                # Se der erro ao verificar/criar índice, apenas logar e continuar
-                logger.warning(f"Erro ao criar índice idx_points: {e}. Continuando sem índice.")
+                # If error occurs while checking/creating index, just log and continue
+                logger.warning(f"Error creating index idx_points: {e}. Continuing without index.")
 
 async def get_user(user_id: int, use_cache: bool = True):
     """
-    Obtém dados do usuário.
+    Get user data.
     
     Args:
-        user_id: ID do usuário
-        use_cache: Se True, usa cache com TTL (padrão: True)
+        user_id: User ID
+        use_cache: If True, uses cache with TTL (default: True)
     
     Returns:
-        Dict com dados do usuário ou None se não encontrado
+        Dict with user data or None if not found
     
     Raises:
-        RuntimeError: Se o pool de banco não estiver inicializado
+        RuntimeError: If database pool is not initialized
     """
-    # OPTIMIZAÇÃO FASE 2: Usar cache se habilitado
+    # OPTIMIZATION PHASE 2: Use cache if enabled
     if use_cache:
         try:
             from utils.cache import get_user_cached
             return await get_user_cached(user_id)
         except ImportError:
-            # Cache não disponível, continuar sem cache
+            # Cache not available, continue without cache
             pass
         except Exception as e:
-            # Em caso de erro no cache, fazer query direta
+            # In case of cache error, perform direct query
             logger = get_logger(__name__) if 'logger' not in dir() else None
             if logger:
-                logger.warning(f"Erro no cache, fazendo query direta: {e}")
+                logger.warning(f"Cache error, performing direct query: {e}")
     
-    # Query direta ao banco
+    # Direct query to database
     if _POOL is None:
         raise RuntimeError("DB pool not initialized. Call initialize_db() first.")
     async with _POOL.acquire() as conn:
@@ -152,45 +152,45 @@ async def create_user(user_id: int):
                 (user_id,)
             )
     
-    # OPTIMIZAÇÃO FASE 2: Invalidar cache (usuário foi criado)
+    # OPTIMIZATION PHASE 2: Invalidate cache (user was created)
     try:
         from utils.cache import invalidate_user_cache
         invalidate_user_cache(user_id)
     except Exception:
         pass
     
-    # OPTIMIZAÇÃO: Auditoria assíncrona (não bloqueia resposta)
+    # OPTIMIZATION: Asynchronous audit (does not block response)
     try:
         from utils.audit_log import log_data_operation
         asyncio.create_task(log_data_operation(
             user_id=user_id,
             action_type="CREATE",
             data_type="user_data",
-            purpose="Criação de novo registro de usuário"
+            purpose="New user record creation"
         ))
     except Exception:
-        pass  # Não falhar se auditoria não estiver disponível
+        pass  # Don't fail if audit is not available
 
 async def update_points(user_id: int, points: int, performed_by: int = None, purpose: str = None) -> int:
     """
-    Atualiza os pontos do usuário e retorna o novo valor.
+    Update user points and return the new value.
     
     Args:
-        user_id: ID do usuário
-        points: Quantidade de pontos a adicionar/subtrair
-        performed_by: ID de quem realizou a ação (opcional)
-        purpose: Propósito da atualização (opcional)
+        user_id: User ID
+        points: Amount of points to add/subtract
+        performed_by: ID of who performed the action (optional)
+        purpose: Purpose of the update (optional)
     
     Returns:
-        Novo valor de points após atualização
+        New points value after update
     
     Raises:
-        RuntimeError: Se o pool não foi inicializado
+        RuntimeError: If pool was not initialized
     """
     if _POOL is None:
         raise RuntimeError("DB pool not initialized. Call initialize_db() first.")
     
-    # OPTIMIZAÇÃO FASE 2: Invalidar cache antes de atualizar
+    # OPTIMIZATION PHASE 2: Invalidate cache before updating
     try:
         from utils.cache import invalidate_user_cache
         invalidate_user_cache(user_id)
@@ -199,13 +199,13 @@ async def update_points(user_id: int, points: int, performed_by: int = None, pur
     
     async with _POOL.acquire() as conn:
         async with conn.cursor() as cursor:
-            # Atualizar pontos
+            # Update points
             await cursor.execute(
                 "UPDATE users SET points = points + %s WHERE user_id = %s",
                 (points, user_id)
             )
             
-            # Buscar novo valor na mesma conexão (otimizado)
+            # Fetch new value in same connection (optimized)
             await cursor.execute(
                 "SELECT points FROM users WHERE user_id = %s",
                 (user_id,)
@@ -213,7 +213,7 @@ async def update_points(user_id: int, points: int, performed_by: int = None, pur
             result = await cursor.fetchone()
             new_points = int(result[0]) if result else 0
     
-    # OPTIMIZAÇÃO: Auditoria assíncrona (não bloqueia resposta)
+    # OPTIMIZATION: Asynchronous audit (does not block response)
     try:
         from utils.audit_log import log_data_operation
         asyncio.create_task(log_data_operation(
@@ -221,28 +221,28 @@ async def update_points(user_id: int, points: int, performed_by: int = None, pur
             action_type="UPDATE",
             data_type="points",
             performed_by=performed_by,
-            purpose=purpose or f"Atualização de pontos: {'+' if points > 0 else ''}{points}"
+            purpose=purpose or f"Points update: {'+' if points > 0 else ''}{points}"
         ))
     except Exception:
-        pass  # Não falhar se auditoria não estiver disponível
+        pass  # Don't fail if audit is not available
     
     return new_points
 
 async def ensure_user_exists(user_id: int):
-    """Garante que o usuário existe no banco, criando se necessário"""
-    # Usar cache=false para garantir verificação precisa
+    """Ensures user exists in database, creating if necessary"""
+    # Use cache=false to ensure accurate verification
     if not await get_user(user_id, use_cache=False):
         await create_user(user_id)
 
 def get_pool():
     """
-    Obtém o pool de conexões do banco de dados.
+    Get the database connection pool.
     
     Returns:
-        aiomysql.Pool ou None se não inicializado
+        aiomysql.Pool or None if not initialized
     
     Raises:
-        RuntimeError: Se o pool não foi inicializado
+        RuntimeError: If pool was not initialized
     """
     if _POOL is None:
         raise RuntimeError("DB pool not initialized. Call initialize_db() first.")
