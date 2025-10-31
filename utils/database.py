@@ -79,10 +79,29 @@ async def initialize_db():
             """)
             
             # Índice para otimizar queries de leaderboard (ORDER BY points DESC)
-            await cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_points 
-                ON users(points DESC)
-            """)
+            # Verificar se o índice já existe antes de criar (IF NOT EXISTS não funciona em todas versões MySQL)
+            try:
+                await cursor.execute("""
+                    SELECT COUNT(*) as count
+                    FROM information_schema.statistics 
+                    WHERE table_schema = DATABASE() 
+                    AND table_name = 'users' 
+                    AND index_name = 'idx_points'
+                """)
+                result = await cursor.fetchone()
+                index_exists = result[0] > 0 if result else False
+                
+                if not index_exists:
+                    await cursor.execute("""
+                        CREATE INDEX idx_points 
+                        ON users(points DESC)
+                    """)
+                    logger.info("Índice idx_points criado com sucesso")
+                else:
+                    logger.debug("Índice idx_points já existe")
+            except Exception as e:
+                # Se der erro ao verificar/criar índice, apenas logar e continuar
+                logger.warning(f"Erro ao criar índice idx_points: {e}. Continuando sem índice.")
 
 async def get_user(user_id: int, use_cache: bool = True):
     """
