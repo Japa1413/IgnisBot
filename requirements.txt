@@ -1,0 +1,18 @@
+# IgnisBot - Dependências Principais
+# Python 3.10+ recomendado
+
+# Discord API
+discord.py>=2.3.0
+
+# Database
+aiomysql>=0.2.0
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# Logging (opcional, mas recomendado)
+# structlog>=23.0.0  # Descomente para logging estruturado
+
+# Type Hints
+typing-extensions>=4.5.0
+

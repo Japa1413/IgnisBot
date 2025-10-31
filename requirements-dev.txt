@@ -1,0 +1,22 @@
+# IgnisBot - Dependências de Desenvolvimento e Análise
+
+# Análise de Segurança
+bandit>=1.7.5          # Análise estática de segurança Python
+safety>=2.3.5           # Verificação de vulnerabilidades em dependências
+semgrep>=1.45.0         # Análise de segurança avançada (opcional)
+
+# Análise de Código
+pylint>=3.0.0           # Linter e análise de qualidade
+mypy>=1.7.0             # Type checking estático
+ruff>=0.1.0             # Linter rápido (alternativa ao pylint)
+black>=23.12.0          # Formatador de código (opcional)
+
+# Testes
+pytest>=7.4.0           # Framework de testes
+pytest-asyncio>=0.21.0  # Suporte a testes assíncronos
+pytest-cov>=4.1.0       # Cobertura de testes
+pytest-mock>=3.12.0     # Mocks para testes
+
+# Documentação
+sphinx>=7.2.0           # Geração de documentação (opcional)
+
