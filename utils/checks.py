@@ -16,11 +16,13 @@ def appcmd_channel_only(*allowed_ids: int):
     async def predicate(interaction: discord.Interaction) -> bool:
         allowed = bool(interaction.channel and interaction.channel.id in allowed_ids)
         if not allowed:
-            # Levantar erro com mensagem mais descritiva
+            # Levantar erro com mensagem mais descritiva e amigável
             channel_ids_str = ', '.join(str(cid) for cid in allowed_ids)
+            current_channel = interaction.channel.name if interaction.channel else 'Unknown'
+            # Tentar obter nome do canal permitido via bot (será melhorado no handler de erro)
             raise app_commands.CheckFailure(
-                f"Este comando só pode ser usado em canais específicos (IDs: {channel_ids_str}). "
-                f"Canal atual: {interaction.channel.id if interaction.channel else 'None'}"
+                f"Este comando só pode ser usado no canal específico (ID: {channel_ids_str}). "
+                f"Você está atualmente em: #{current_channel} (ID: {interaction.channel.id if interaction.channel else 'None'})"
             )
         return True
     return app_commands.check(predicate)
