@@ -25,7 +25,7 @@ class AddPointsCog(commands.Cog):
         interaction: discord.Interaction,
         member: discord.Member,
         points: app_commands.Range[int, 1, 100_000],
-        reason: str | None = None
+        reason: str
     ):
         await interaction.response.defer(thinking=True, ephemeral=False)
         try:
@@ -40,13 +40,13 @@ class AddPointsCog(commands.Cog):
                 member.id,
                 points,
                 performed_by=interaction.user.id,
-                purpose=f"Adição de pontos via /add: {reason or 'Sem motivo especificado'}"
+                purpose=f"Adição de pontos via /add: {reason}"
             )
 
             embed = discord.Embed(title="Points Added", color=discord.Color.green())
             embed.add_field(name="**User:**", value=f"{member.mention}", inline=True)
             embed.add_field(name="**Points:**", value=f"{before} -> {after}", inline=True)
-            embed.add_field(name="**Reason:**", value=reason or "—", inline=True)
+            embed.add_field(name="**Reason:**", value=reason, inline=True)
             footer_icon = getattr(interaction.user.display_avatar, "url", None)
             embed.set_footer(text=f"{interaction.user.display_name}", icon_url=footer_icon)
             embed.timestamp = discord.utils.utcnow()
