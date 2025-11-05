@@ -23,7 +23,6 @@ from cogs.data_privacy import DataPrivacyCog
 from cogs.legal import LegalCog
 from cogs.cache_stats import CacheStatsCog
 from cogs.induction import InductionCog
-from cogs.promotion import PromotionCog
 # If you have event_buttons.py as an extension with setup(bot), you can load it via load_extension
 
 intents = discord.Intents.default()
@@ -58,7 +57,6 @@ class IgnisBot(commands.Bot):
         await self.add_cog(LegalCog(self))
         await self.add_cog(CacheStatsCog(self))
         await self.add_cog(InductionCog(self))
-        await self.add_cog(PromotionCog(self))
 
         # 4) Gamification Handlers DISABLED - Using manual progression system
         # from events.gamification_handlers import setup

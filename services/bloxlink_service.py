@@ -155,4 +155,68 @@ class BloxlinkService:
             Avatar URL string
         """
         return f"https://www.roblox.com/headshot-thumbnail/image?userId={roblox_id}&width=420&height=420&format=png"
+    
+    async def get_roblox_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
+        """
+        Get Roblox user data by username (not display name).
+        
+        Args:
+            username: Roblox username (not display name)
+        
+        Returns:
+            Dict with:
+            - username: Roblox username
+            - id: Roblox user ID
+            - avatar_url: Roblox avatar URL
+            - verified: Always True (found by username)
+            Or None if user not found
+        """
+        try:
+            # Roblox API endpoint to search users by username
+            url = f"https://users.roblox.com/v1/users/search"
+            params = {"keyword": username, "limit": 1}
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                    if response.status != 200:
+                        logger.warning(f"Roblox API returned status {response.status} for username {username}")
+                        return None
+                    
+                    data = await response.json()
+                    
+                    # Check if user was found
+                    users = data.get("data", [])
+                    if not users:
+                        logger.debug(f"User {username} not found in Roblox")
+                        return None
+                    
+                    # Get first result and verify it matches exactly (case-insensitive)
+                    user_data = users[0]
+                    found_username = user_data.get("name", "")
+                    
+                    # Verify exact match (case-insensitive)
+                    if found_username.lower() != username.lower():
+                        logger.debug(f"Username mismatch: searched '{username}', found '{found_username}'")
+                        return None
+                    
+                    roblox_id = user_data.get("id")
+                    if not roblox_id:
+                        return None
+                    
+                    # Build avatar URL
+                    avatar_url = f"https://www.roblox.com/headshot-thumbnail/image?userId={roblox_id}&width=420&height=420&format=png"
+                    
+                    return {
+                        "username": found_username,  # Actual username (not display name)
+                        "id": roblox_id,
+                        "avatar_url": avatar_url,
+                        "verified": True
+                    }
+                    
+        except aiohttp.ClientError as e:
+            logger.error(f"Error fetching Roblox user by username '{username}': {e}", exc_info=True)
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error in get_roblox_user_by_username for '{username}': {e}", exc_info=True)
+            return None
 

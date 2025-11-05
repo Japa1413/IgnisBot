@@ -31,9 +31,9 @@ class InductionCog(commands.Cog):
         self.bloxlink_service = BloxlinkService()
         self.audit_service = AuditService()
     
-    @app_commands.command(name="induction", description="Inicia processo de indução para um membro")
+    @app_commands.command(name="induction", description="Inicia processo de indução para um jogador")
     @app_commands.describe(
-        member="Membro do Discord para iniciar indução",
+        roblox_username="Nickname do jogador no Roblox",
         instructions="Instruções adicionais (opcional)"
     )
     @appcmd_channel_only(INDUCTION_CHANNEL_ID)
@@ -41,40 +41,36 @@ class InductionCog(commands.Cog):
     async def induction(
         self,
         interaction: discord.Interaction,
-        member: discord.Member,
+        roblox_username: str,
         instructions: str = ""
     ):
         """
-        Inicia processo de indução para um membro.
+        Inicia processo de indução para um jogador pelo nickname do Roblox.
         
         Requisitos:
-        - Membro deve estar verificado pelo Bloxlink
+        - Nickname do Roblox válido
         - Usuário deve ser moderador ou dono do servidor
         - Comando deve ser usado no canal específico
         """
         await interaction.response.defer(thinking=True, ephemeral=False)
         
         try:
-            # Verificar se membro está no servidor
-            if not member.guild:
-                await interaction.followup.send("❌ Membro não encontrado no servidor.", ephemeral=True)
-                return
-            
-            # Verificar verificação Bloxlink
-            roblox_data = await self.bloxlink_service.get_roblox_user(member.id, GUILD_ID)
+            # Buscar informações do Roblox pelo username
+            searched_username = roblox_username.strip()
+            roblox_data = await self.bloxlink_service.get_roblox_user_by_username(searched_username)
             
             if not roblox_data:
                 await interaction.followup.send(
-                    f"❌ **{member.mention}** não está verificado pelo Bloxlink.\n"
-                    f"Por favor, peça para o membro usar `/verify` no Bloxlink primeiro.",
+                    f"❌ Usuário **{searched_username}** não encontrado no Roblox.\n"
+                    f"Verifique se o nickname está correto (não use display name).",
                     ephemeral=True
                 )
                 return
             
             # Extrair informações
-            roblox_username = roblox_data.get("username", "Unknown")
+            roblox_username_found = roblox_data.get("username", "Unknown")
             roblox_id = roblox_data.get("id", "Unknown")
-            avatar_url = roblox_data.get("avatar_url", member.display_avatar.url)
+            avatar_url = roblox_data.get("avatar_url", "")
             
             # Criar embed de indução
             embed = discord.Embed(
@@ -86,7 +82,7 @@ class InductionCog(commands.Cog):
             # Adicionar informações do recruta
             embed.add_field(
                 name="Recruta",
-                value=f"**{roblox_username}**",
+                value=f"**{roblox_username_found}**",
                 inline=True
             )
             
@@ -139,20 +135,21 @@ class InductionCog(commands.Cog):
             
             # Log de auditoria
             await self.audit_service.log_operation(
-                user_id=member.id,
+                user_id=0,  # Não temos Discord ID, apenas Roblox username
                 action_type="CREATE",
                 data_type="induction",
                 performed_by=interaction.user.id,
                 purpose="Início do processo de indução",
                 details={
-                    "roblox_username": roblox_username,
+                    "roblox_username": roblox_username_found,
                     "roblox_id": roblox_id,
-                    "instructions": instructions
+                    "instructions": instructions,
+                    "searched_username": searched_username
                 }
             )
             
             logger.info(
-                f"Induction started for {member.id} ({roblox_username}) "
+                f"Induction started for Roblox user {roblox_username_found} (ID: {roblox_id}) "
                 f"by {interaction.user.id}"
             )
             
