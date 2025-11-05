@@ -148,22 +148,45 @@ class ProgressionService:
         rank = user.get("rank", "Civitas Aspirant")
         path_name = user.get("path", DEFAULT_PATH)
         
-        # Get rank limit (visual bar limit)
-        rank_limit = get_rank_limit(rank, path_name)
-        
         # Calculate progress towards next rank
         next_rank, exp_in_current, exp_needed, additional_req, is_handpicked = get_rank_progress(
             points, rank, path_name
         )
         
-        # Generate progress bar with rank_limit logic
-        # Sacred protocol: Bar fills completely when points >= rank_limit
-        # But always displays actual points (even if exceeds limit)
-        bar = progress_bar(points, rank_limit, width=12)  # Uniform width for terminal aesthetic
+        # Get rank limit (visual bar limit) for current rank
+        rank_limit = get_rank_limit(rank, path_name)
+        
+        # Determine what to show in the progress bar
+        # Strategy: Show progress towards next rank if applicable, otherwise use rank_limit
+        if next_rank == "Max Rank":
+            # At max rank - show progress using rank_limit as reference
+            bar_current = min(points, rank_limit)
+            bar_total = rank_limit
+            progress_display = f"{points} / {rank_limit}"
+        elif exp_needed > 0:
+            # Progressing towards next rank
+            # Show progress within current rank range
+            # Use rank_limit as visual cap, but show actual progress
+            bar_current = min(points, rank_limit)
+            bar_total = rank_limit
+            # Display shows actual progress towards next rank
+            progress_display = f"{points} / {rank_limit}"
+        else:
+            # Edge case: no exp needed but not at max
+            bar_current = min(points, rank_limit)
+            bar_total = rank_limit
+            progress_display = f"{points} / {rank_limit}"
+        
+        # Generate progress bar
+        bar = progress_bar(bar_current, bar_total, width=12)
         
         # Calculate percentage for display
-        visual_fill = min(points, rank_limit)
-        progress_pct = (visual_fill / rank_limit * 100) if rank_limit > 0 else 100.0
+        if bar_total > 0:
+            progress_pct = (bar_current / bar_total * 100)
+            # Cap at 100% for visual, but show actual points
+            progress_pct = min(100.0, progress_pct)
+        else:
+            progress_pct = 100.0
         
         return {
             "user_id": user_id,
@@ -178,6 +201,7 @@ class ProgressionService:
             "exp_needed": exp_needed,
             "progress_pct": progress_pct,
             "progress_bar": bar,
+            "progress_display": progress_display,  # Add formatted display string
             "additional_requirement": additional_req,
             "is_handpicked": is_handpicked
         }

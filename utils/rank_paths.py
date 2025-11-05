@@ -219,20 +219,39 @@ def progress_bar(current: int, total: int, width: int = 12) -> str:
     
     Returns:
         Progress bar string with terminal-style brackets
+    
+    Examples:
+        progress_bar(10, 20, 12) -> "│██████░░░░░░│" (50% filled)
+        progress_bar(20, 20, 12) -> "│████████████│" (100% filled)
+        progress_bar(30, 20, 12) -> "│████████████│" (full, exceeds limit)
+        progress_bar(0, 20, 12)   -> "│░░░░░░░░░░░░│" (0% filled)
     """
+    # Handle edge cases
     if total <= 0:
+        # Invalid total, show full bar
         return f"│{'█' * width}│"
     
-    # Visual fill: bar fills completely when current >= total
-    # But we always show the actual current value in the display
+    if current < 0:
+        # Negative current, show empty bar
+        return f"│{'░' * width}│"
+    
+    # Calculate fill percentage (cap at 100% for visual)
     if current >= total:
         # Bar is full, but we show actual points separately
         filled = width
         empty = 0
     else:
-        # Normal progression
-        filled = int((current / total) * width)
+        # Normal progression: calculate percentage and convert to bar width
+        percentage = current / total
+        filled = int(percentage * width)
+        
+        # Ensure filled is within bounds
         filled = max(0, min(filled, width))
+        
+        # For very small percentages, show at least 1 block if current > 0
+        if current > 0 and filled == 0 and percentage > 0:
+            filled = 1
+        
         empty = width - filled
     
     # Warhammer terminal style: │ for borders, █ for filled, ░ for empty
@@ -243,12 +262,20 @@ def get_rank_limit(rank: str, path_name: str) -> int:
     """
     Get visual progress bar limit for a rank.
     
+    This returns the rank_limit for the rank, which is used as the visual cap
+    for the progress bar. The bar will fill completely when points reach this limit,
+    but users can continue accumulating points beyond it.
+    
     Args:
         rank: Rank name
         path_name: Path identifier
     
     Returns:
         Rank limit (visual bar limit)
+    
+    Examples:
+        get_rank_limit("Civitas Aspirant", "pre_induction") -> 20
+        get_rank_limit("Flamehardened Veteran", "legionary") -> 150
     """
     if path_name not in ALL_PATHS:
         path_name = DEFAULT_PATH
@@ -256,13 +283,18 @@ def get_rank_limit(rank: str, path_name: str) -> int:
     path = ALL_PATHS[path_name]
     
     # Find rank in path - check both current_rank and next_rank
-    for req in path.ranks:
-        if req.current_rank == rank:
-            return req.rank_limit
+    # Priority: check next_rank first (user is at this rank)
+    for req in reversed(path.ranks):  # Check from highest to lowest
         if req.next_rank == rank:
             return req.rank_limit
+        if req.current_rank == rank:
+            return req.rank_limit
     
-    # Default limit if not found
+    # If rank not found, try to find based on starting rank
+    if path.ranks and path.ranks[0].current_rank == rank:
+        return path.ranks[0].rank_limit
+    
+    # Default limit if not found (shouldn't happen in normal operation)
     return 20
 
 

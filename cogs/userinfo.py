@@ -133,9 +133,9 @@ class UserInfoCog(commands.Cog):
             
             # Progress section: Point Progress (bar in code block, numbers as text)
             # Sacred protocol: Show bar + actual points (even if exceeds limit)
-            points_display = user_info['points']
-            limit_display = user_info['rank_limit']
-            progress_display = f"```{user_info['progress_bar']}```\n{points_display} / {limit_display}"
+            # Use the formatted display string from progression service
+            progress_display_value = user_info.get('progress_display', f"{user_info['points']} / {user_info['rank_limit']}")
+            progress_display = f"```{user_info['progress_bar']}```\n{progress_display_value}"
             
             embed.add_field(
                 name="[PROGRESS]",
