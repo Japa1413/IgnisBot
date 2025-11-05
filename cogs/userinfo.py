@@ -95,47 +95,47 @@ class UserInfoCog(commands.Cog):
             gold_studs = 0
             silver_studs = 0
             
-            # Build embed with Warhammer terminal aesthetic
+            # Build embed with Warhammer terminal aesthetic (clean version)
             embed = discord.Embed(
-                title=f"╔═══ TERMINAL: {member.display_name.upper()} ═══╗",
+                title=f"— TERMINAL: {member.display_name.upper()} —",
                 color=discord.Color.from_rgb(0, 255, 0)  # Bright green terminal color
             )
             
             if avatar_url:
                 embed.set_thumbnail(url=avatar_url)
             
-            # Terminal-style header separator
+            # Clean separator line
             embed.add_field(
                 name="\u200b",
-                value="```╠═══════════════════════════════════════════════════════════╣```",
+                value="╠═══════════════════════════════════════════════════════════╣",
                 inline=False
             )
             
-            # Top section: Points and Rank (terminal style)
+            # Top section: Points and Rank (clean text, no code blocks)
             embed.add_field(
                 name="[POINTS]",
-                value=f"```> {user_info['points']}```",
+                value=f"> {user_info['points']}",
                 inline=True
             )
             embed.add_field(
                 name="[RANK]",
-                value=f"```> {user_info['rank']}```",
+                value=f"> {user_info['rank']}",
                 inline=True
             )
             embed.add_field(name="\u200b", value="\u200b", inline=True)
             
-            # Terminal separator
+            # Clean separator
             embed.add_field(
                 name="\u200b",
-                value="```╠═══════════════════════════════════════════════════════════╣```",
+                value="╠═══════════════════════════════════════════════════════════╣",
                 inline=False
             )
             
-            # Progress section: Point Progress (terminal style with fixed bar)
+            # Progress section: Point Progress (bar in code block, numbers as text)
             # Sacred protocol: Show bar + actual points (even if exceeds limit)
             points_display = user_info['points']
             limit_display = user_info['rank_limit']
-            progress_display = f"```{user_info['progress_bar']}```\n`{points_display} / {limit_display}`"
+            progress_display = f"```{user_info['progress_bar']}```\n{points_display} / {limit_display}"
             
             embed.add_field(
                 name="[PROGRESS]",
@@ -152,40 +152,40 @@ class UserInfoCog(commands.Cog):
             
             embed.add_field(
                 name="[NEXT_RANK]",
-                value=f"```> {next_rank_value}```",
+                value=f"> {next_rank_value}",
                 inline=True
             )
             embed.add_field(
                 name="[AWARDS]",
-                value=f"```> {awards}```",
+                value=f"> {awards}",
                 inline=True
             )
             
-            # Terminal separator
+            # Clean separator
             embed.add_field(
                 name="\u200b",
-                value="```╠═══════════════════════════════════════════════════════════╣```",
+                value="╠═══════════════════════════════════════════════════════════╣",
                 inline=False
             )
             
-            # Bottom section: Company, Speciality, Service Studs (terminal style)
+            # Bottom section: Company, Speciality, Service Studs (clean text)
             embed.add_field(
                 name="[COMPANY]",
-                value=f"```> {company}```",
+                value=f"> {company}",
                 inline=True
             )
             embed.add_field(
                 name="[SPECIALITY]",
-                value=f"```> {specialty}```",
+                value=f"> {specialty}",
                 inline=True
             )
             embed.add_field(
                 name="[SERVICE_STUDS]",
-                value=f"```> Gold: {gold_studs}\n> Silver: {silver_studs}```",
+                value=f"> Gold: {gold_studs}\n> Silver: {silver_studs}",
                 inline=True
             )
             
-            # Terminal footer
+            # Clean terminal footer
             embed.set_footer(text="╚═══ IGNIS TERMINAL v2.0 ─ STATUS: OPERATIONAL ═══╝")
             
             await ctx.reply(embed=embed, mention_author=False)
