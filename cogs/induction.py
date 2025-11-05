@@ -1,8 +1,8 @@
 """
-Induction Cog - Processo de indução para novos membros.
+Induction Cog - Induction process for new members.
 
-Gerencia o processo de indução com integração Bloxlink,
-exibindo informações do Roblox e iniciando o processo.
+Manages the induction process with Bloxlink integration,
+displaying Roblox information and starting the process.
 """
 
 from __future__ import annotations
@@ -19,22 +19,22 @@ from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Canal específico para comandos de indução e promoção
+# Specific channel for induction and promotion commands
 INDUCTION_CHANNEL_ID = 1375941286267326532
 
 
 class InductionCog(commands.Cog):
-    """Cog para gerenciar processo de indução"""
+    """Cog to manage induction process"""
     
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.bloxlink_service = BloxlinkService()
         self.audit_service = AuditService()
     
-    @app_commands.command(name="induction", description="Inicia processo de indução para um jogador")
+    @app_commands.command(name="induction", description="Start induction process for a player")
     @app_commands.describe(
-        roblox_username="Nickname do jogador no Roblox",
-        instructions="Instruções adicionais (opcional)"
+        roblox_username="Player's Roblox nickname",
+        instructions="Additional instructions (optional)"
     )
     @appcmd_channel_only(INDUCTION_CHANNEL_ID)
     @appcmd_moderator_or_owner()
@@ -45,49 +45,63 @@ class InductionCog(commands.Cog):
         instructions: str = ""
     ):
         """
-        Inicia processo de indução para um jogador pelo nickname do Roblox.
+        Start induction process for a player by Roblox nickname.
         
-        Requisitos:
-        - Nickname do Roblox válido
-        - Usuário deve ser moderador ou dono do servidor
-        - Comando deve ser usado no canal específico
+        Requirements:
+        - Valid Roblox nickname
+        - User must be moderator or server owner
+        - Command must be used in specific channel
         """
         await interaction.response.defer(thinking=True, ephemeral=False)
         
         try:
-            # Buscar informações do Roblox pelo username
+            # Fetch Roblox information by username
             searched_username = roblox_username.strip()
-            roblox_data = await self.bloxlink_service.get_roblox_user_by_username(searched_username)
             
-            if not roblox_data:
+            if not searched_username:
                 await interaction.followup.send(
-                    f"❌ Usuário **{searched_username}** não encontrado no Roblox.\n"
-                    f"Verifique se o nickname está correto (não use display name).",
+                    "❌ Please provide a valid Roblox username.",
                     ephemeral=True
                 )
                 return
             
-            # Extrair informações
+            logger.info(f"Searching for Roblox user: {searched_username}")
+            roblox_data = await self.bloxlink_service.get_roblox_user_by_username(searched_username)
+            
+            if not roblox_data:
+                logger.warning(f"Roblox user '{searched_username}' not found")
+                await interaction.followup.send(
+                    f"❌ User **{searched_username}** not found on Roblox.\n\n"
+                    f"**Please verify:**\n"
+                    f"• The username is spelled correctly\n"
+                    f"• You are using the **username** (not display name)\n"
+                    f"• The account exists and is not banned\n"
+                    f"• Try searching for the user on Roblox.com first",
+                    ephemeral=True
+                )
+                return
+            
+            # Extract information
             roblox_username_found = roblox_data.get("username", "Unknown")
             roblox_id = roblox_data.get("id", "Unknown")
             avatar_url = roblox_data.get("avatar_url", "")
             
-            # Criar embed de indução
+            # Create induction embed
             embed = discord.Embed(
-                title="🔥 Iniciando processo de indução 🔥",
+                title="🔥 Starting Induction Process 🔥",
                 color=discord.Color.orange(),
                 timestamp=discord.utils.utcnow()
             )
             
-            # Adicionar informações do recruta
+            # Add recruit information
             embed.add_field(
-                name="Recruta",
+                name="Recruit",
                 value=f"**{roblox_username_found}**",
                 inline=True
             )
             
             embed.add_field(
-                name="ID Roblox",
+                name="Roblox ID",
                 value=f"`{roblox_id}`",
                 inline=True
             )
@@ -97,49 +111,49 @@ class InductionCog(commands.Cog):
             # Avatar
             embed.set_thumbnail(url=avatar_url)
             
-            # Mensagem de boas-vindas
+            # Welcome message
             welcome_message = (
-                f"Bem-vindo ao processo de indução do **Age Of Warfare**.\n"
-                f"Você será guiado através de uma série de etapas para se tornar um membro oficial do grupo.\n\n"
-                f"**Próximos passos:**\n"
+                f"Welcome to the **Age Of Warfare** induction process.\n"
+                f"You will be guided through a series of steps to become an official member of the group.\n\n"
+                f"**Next steps:**\n"
             )
             
             if instructions:
                 welcome_message += f"{instructions}\n\n"
             else:
                 welcome_message += (
-                    "1. Leia as regras do servidor\n"
-                    "2. Complete o treinamento básico\n"
-                    "3. Aguarde aprovação da administração\n\n"
+                    "1. Read the server rules\n"
+                    "2. Complete basic training\n"
+                    "3. Wait for administration approval\n\n"
                 )
             
             welcome_message += (
-                "Siga atentamente as instruções fornecidas.\n"
-                "Qualquer dúvida, entre em contato com a administração."
+                "Please follow the provided instructions carefully.\n"
+                "If you have any questions, contact the administration."
             )
             
             embed.add_field(
-                name="📋 Instruções",
+                name="📋 Instructions",
                 value=welcome_message,
                 inline=False
             )
             
             # Footer
             embed.set_footer(
-                text=f"Iniciado por {interaction.user.display_name}",
+                text=f"Started by {interaction.user.display_name}",
                 icon_url=interaction.user.display_avatar.url
             )
             
-            # Enviar mensagem
+            # Send message
             await interaction.followup.send(embed=embed)
             
-            # Log de auditoria
+            # Audit log
             await self.audit_service.log_operation(
-                user_id=0,  # Não temos Discord ID, apenas Roblox username
+                user_id=0,  # No Discord ID available, only Roblox username
                 action_type="CREATE",
                 data_type="induction",
                 performed_by=interaction.user.id,
-                purpose="Início do processo de indução",
+                purpose="Induction process started",
                 details={
                     "roblox_username": roblox_username_found,
                     "roblox_id": roblox_id,
@@ -156,7 +170,7 @@ class InductionCog(commands.Cog):
         except Exception as e:
             logger.error(f"Error in induction command: {e}", exc_info=True)
             await interaction.followup.send(
-                "❌ Erro ao iniciar processo de indução. Verifique os logs.",
+                "❌ Error starting induction process. Please check the logs.",
                 ephemeral=True
             )
 

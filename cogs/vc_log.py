@@ -1,7 +1,15 @@
 # cogs/vc_log.py
+"""
+VC Log Cog - Voice Channel Points Logging System
+
+Restricted to Vox-link channels only.
+All points are stored exclusively in the SQL database (no external integrations).
+"""
+
 from __future__ import annotations
 
 import asyncio
+import re
 from typing import Optional, List
 
 import discord
@@ -10,26 +18,94 @@ from discord import app_commands
 
 from services.points_service import PointsService
 from services.user_service import UserService
+from services.audit_service import AuditService
 from utils.checks import appcmd_channel_only
 from utils.config import (
     STAFF_CMDS_CHANNEL_ID,
     SUMMARY_CHANNEL_FALLBACK_ID,
-    ALLOWED_VC_IDS
 )
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+# Vox-link channels that are allowed for logging
+VOX_LINK_CHANNELS = [
+    "Vox-link I",
+    "Vox-link II",
+    "Vox-link III",
+    "Vox-link IV",
+]
+
 
 class VCLogCog(commands.Cog):
+    """Voice channel logging system - restricted to Vox-link channels"""
+    
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-
+        self.audit_service = AuditService()
+    
+    def _is_vox_link_channel(self, channel: discord.VoiceChannel | discord.StageChannel) -> bool:
+        """
+        Check if channel is a valid Vox-link channel.
+        
+        Args:
+            channel: Voice or Stage channel
+        
+        Returns:
+            True if channel name matches Vox-link pattern
+        """
+        if not channel:
+            return False
+        
+        # Check exact match
+        if channel.name in VOX_LINK_CHANNELS:
+            return True
+        
+        # Check pattern match (case-insensitive, handles variations)
+        pattern = r'^vox-link\s+[ivx]+$'
+        if re.match(pattern, channel.name, re.IGNORECASE):
+            return True
+        
+        return False
+    
+    def _find_vox_link_channels(self, guild: discord.Guild) -> List[discord.VoiceChannel | discord.StageChannel]:
+        """
+        Find all Vox-link channels in the guild.
+        
+        Args:
+            guild: Discord guild
+        
+        Returns:
+            List of Vox-link channels
+        """
+        channels = []
+        
+        # Check voice channels
+        for channel in guild.voice_channels:
+            if self._is_vox_link_channel(channel):
+                channels.append(channel)
+        
+        # Check stage channels
+        for channel in guild.stage_channels:
+            if self._is_vox_link_channel(channel):
+                channels.append(channel)
+        
+        return channels
+    
     @app_commands.command(
         name="vc_log",
-        description="Add points to all non-bot users currently in a voice channel."
+        description="Add points to all non-bot users in a Vox-link voice channel."
     )
     @app_commands.describe(
         amount="How many points to add to each user",
-        event="Event or reason",
+        event="Event or reason for logging",
         evidence="Evidence (image/screenshot/file) for the summary (optional)",
-        vc_channel="Voice channel (optional). Defaults to the one you are in."
+        vc_name="Vox-link channel (optional, defaults to your current VC)"
+    )
+    @app_commands.choices(
+        vc_name=[
+            app_commands.Choice(name=vc, value=vc) for vc in VOX_LINK_CHANNELS
+        ]
     )
     @appcmd_channel_only(STAFF_CMDS_CHANNEL_ID)
     async def vc_log(
@@ -38,55 +114,90 @@ class VCLogCog(commands.Cog):
         amount: app_commands.Range[int, 1, 100_000],
         event: str,
         evidence: Optional[discord.Attachment] = None,
-        vc_channel: Optional[discord.VoiceChannel] = None,
+        vc_name: Optional[app_commands.Choice[str]] = None,
     ):
+        """
+        Log points for all users in a Vox-link channel.
+        
+        Only Vox-link channels are allowed:
+        - Vox-link I
+        - Vox-link II
+        - Vox-link III
+        - Vox-link IV
+        """
         await interaction.response.defer(thinking=True, ephemeral=False)
-
+        
         if interaction.guild is None:
-            await interaction.followup.send("This command can only be used in a server.")
+            await interaction.followup.send("❌ This command can only be used in a server.")
             return
-
+        
         # 1) Resolve the voice channel
-        channel: Optional[discord.VoiceChannel]
-        if vc_channel is not None:
-            channel = vc_channel
-        else:
-            # Use the host's current VC
-            if not interaction.user or not getattr(interaction.user, "voice", None) or not interaction.user.voice:
-                await interaction.followup.send("You are not in a voice channel.")
+        channel: Optional[discord.VoiceChannel | discord.StageChannel] = None
+        
+        if vc_name is not None:
+            # Use specified channel
+            channel_name = vc_name.value
+            channel = discord.utils.get(
+                interaction.guild.voice_channels, 
+                name=channel_name
+            ) or discord.utils.get(
+                interaction.guild.stage_channels,
+                name=channel_name
+            )
+            
+            if channel is None:
+                await interaction.followup.send(
+                    f"❌ Vox-link channel '{channel_name}' not found.",
+                    ephemeral=True
+                )
                 return
-            channel = interaction.user.voice.channel  # type: ignore[assignment]
-
-        # 2) Validate whitelist
-        if channel.id not in ALLOWED_VC_IDS:
+        else:
+            # Use user's current VC
+            if not interaction.user.voice or not interaction.user.voice.channel:
+                await interaction.followup.send(
+                    "❌ You are not in a voice channel.\n"
+                    "Please join a Vox-link channel or specify one using the `vc_name` parameter.",
+                    ephemeral=True
+                )
+                return
+            channel = interaction.user.voice.channel
+        
+        # 2) Validate that it's a Vox-link channel
+        if not self._is_vox_link_channel(channel):
+            available_channels = ", ".join(f"**{vc}**" for vc in VOX_LINK_CHANNELS)
             await interaction.followup.send(
-                f"❌ This voice channel is not allowed for logging.\n"
-                f"Channel: {channel.mention} (`{channel.id}`)",
+                f"❌ Channel **{channel.name}** is not a valid Vox-link channel.\n\n"
+                f"**Allowed channels:**\n{available_channels}\n\n"
+                f"Please use one of the Vox-link channels or specify a channel using the `vc_name` parameter.",
+                ephemeral=True
             )
             return
-
+        
         # 3) Gather members (ignore bots)
         members: List[discord.Member] = [m for m in channel.members if not m.bot]
         if not members:
-            await interaction.followup.send(f"No members found in **{channel.name}**.")
+            await interaction.followup.send(
+                f"❌ No members found in **{channel.name}**.",
+                ephemeral=True
+            )
             return
-
+        
         embeds: List[discord.Embed] = []
         attendees: List[str] = []
-
-        # Use Service Layer (NEW - Architecture Phase 2)
+        
+        # Use Service Layer (Ignis Architecture)
         points_service = PointsService(self.bot)
         user_service = UserService()
-
-        # OPTIMIZATION: Process members in parallel where possible
+        
+        # 5) Process members in parallel
         async def process_member(member: discord.Member) -> Optional[tuple]:
             """Process a member and return embed and mention"""
             try:
-                # Ensure user exists
+                # Ensure user exists in Ignis system
                 user_data = await user_service.ensure_exists(member.id)
-                before = int(user_data.get("points", 0))
+                before_points = int(user_data.get("points", 0))
                 
-                # Add points using service (consent validation included)
+                # Add points using Ignis service (consent validation included)
                 transaction = await points_service.add_points(
                     user_id=member.id,
                     amount=amount,
@@ -95,94 +206,154 @@ class VCLogCog(commands.Cog):
                     check_consent=True  # Validate consent (LGPD Art. 7º, I)
                 )
                 
-                # Dispatch event with command context for handlers (audit, cache)
-                from events.event_types import PointsChangedEvent
-                event_obj = PointsChangedEvent(
-                    user_id=transaction.user_id,
-                    before=transaction.before,
-                    after=transaction.after,
-                    delta=transaction.delta,
-                    reason=transaction.reason,
-                    performed_by=transaction.performed_by,
-                    command="/vc_log"
+                # Dispatch event for handlers (audit, cache)
+                try:
+                    from events.event_types import PointsChangedEvent
+                    event_obj = PointsChangedEvent(
+                        user_id=transaction.user_id,
+                        before=transaction.before,
+                        after=transaction.after,
+                        delta=transaction.delta,
+                        reason=transaction.reason,
+                        performed_by=transaction.performed_by,
+                        command="/vc_log"
+                    )
+                    await self.bot.dispatch('points_changed', event_obj)
+                except Exception as event_error:
+                    logger.warning(f"Error dispatching points_changed event: {event_error}", exc_info=True)
+                
+                after_points = transaction.after
+                
+                # Create embed
+                embed = discord.Embed(
+                    title="✅ Points Added",
+                    color=discord.Color.dark_green()
                 )
-                await self.bot.dispatch('points_changed', event_obj)
-                
-                after = transaction.after
-
-                e = discord.Embed(title="Points Added", color=discord.Color.dark_green())
-                e.add_field(name="**User:**", value=member.mention, inline=False)
-                e.add_field(name="**Points:**", value=f"{before} -> {after}", inline=False)
-                e.add_field(name="**Reason:**", value=event or "—", inline=False)
-                e.timestamp = discord.utils.utcnow()
+                embed.add_field(name="**User:**", value=member.mention, inline=False)
+                embed.add_field(
+                    name="**Points:**",
+                    value=f"{before_points} → {after_points}",
+                    inline=False
+                )
+                embed.add_field(name="**Event:**", value=event or "—", inline=False)
+                embed.timestamp = discord.utils.utcnow()
                 footer_icon = getattr(interaction.user.display_avatar, "url", None)
-                e.set_footer(text=f"{interaction.user.display_name}", icon_url=footer_icon)
+                embed.set_footer(
+                    text=f"Logged by {interaction.user.display_name}",
+                    icon_url=footer_icon
+                )
                 
-                return (e, member.mention)
+                return (embed, member.mention)
+                
             except ValueError as ex:
                 # Handle consent validation errors
                 error_msg = str(ex)
                 if "consent" in error_msg.lower():
-                    from utils.logger import get_logger
-                    logger = get_logger(__name__)
                     logger.warning(f"User {member.id} attempted VC log without consent")
-                    # Skip this user but continue with others - return None
-                    return None
+                    # Create error embed
+                    embed = discord.Embed(
+                        title="❌ Consent Required",
+                        description=(
+                            f"{member.mention} has not given consent for data processing.\n"
+                            f"Please ask them to use `/consent grant` first."
+                        ),
+                        color=discord.Color.orange()
+                    )
+                    return (embed, member.mention)
                 # Re-raise other ValueErrors
                 raise
+                
             except Exception as ex:
-                from utils.logger import get_logger
-                logger = get_logger(__name__)
                 logger.error(f"Error updating user {member.id} in vc_log: {ex}", exc_info=True)
-                err = discord.Embed(
-                    title="Error",
-                    description=f"Could not update {member.mention}.",
+                embed = discord.Embed(
+                    title="❌ Error",
+                    description=f"Could not update {member.mention}.\n{str(ex)[:200]}",
                     color=discord.Color.red()
                 )
-                return (err, member.mention)
-
-        # 4) Process all members in parallel
+                return (embed, member.mention)
+        
+        # Process all members in parallel
         tasks = [process_member(member) for member in members]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
         for result in results:
-            if isinstance(result, Exception) or result is None:
+            if isinstance(result, Exception):
+                logger.error(f"Error processing member: {result}", exc_info=True)
+                continue
+            if result is None:
                 continue
             embed, mention = result
             embeds.append(embed)
-            attendees.append(mention)
-
-        # 5) Send user embeds in batches
-        BATCH = 4
-        for i in range(0, len(embeds), BATCH):
-            await interaction.followup.send(embeds=embeds[i:i+BATCH])
-
-        # 6) Send summary to log channel (configured or fallback)
-        summary_channel_id = getattr(self.bot, "log_channel_id", None) or SUMMARY_CHANNEL_FALLBACK_ID
-        summary_channel = interaction.client.get_channel(summary_channel_id)
-
+            if mention:
+                attendees.append(mention)
+        
+        # 6) Send user embeds in batches
+        BATCH_SIZE = 4
+        for i in range(0, len(embeds), BATCH_SIZE):
+            await interaction.followup.send(embeds=embeds[i:i+BATCH_SIZE])
+        
+        # 7) Send summary to log channel
+        summary_channel = self.bot.get_channel(SUMMARY_CHANNEL_FALLBACK_ID)
+        
         if isinstance(summary_channel, (discord.TextChannel, discord.Thread)):
-            summary = discord.Embed(title="Event Summary", color=discord.Color.dark_green())
-            summary.add_field(name="Host", value=interaction.user.mention, inline=False)
-            summary.add_field(name="Event", value=event, inline=False)
-            summary.add_field(name="Channel", value=channel.mention, inline=False)
-            summary.add_field(name="Attendees", value=", ".join(attendees) or "None", inline=False)
-
+            summary = discord.Embed(
+                title="📊 Event Summary",
+                color=discord.Color.dark_green()
+            )
+            summary.add_field(name="**Host:**", value=interaction.user.mention, inline=False)
+            summary.add_field(name="**Event:**", value=event, inline=False)
+            summary.add_field(name="**Channel:**", value=channel.mention, inline=False)
+            summary.add_field(
+                name="**Attendees:**",
+                value=", ".join(attendees) or "None",
+                inline=False
+            )
+            
             if evidence:
                 if evidence.content_type and str(evidence.content_type).startswith("image/"):
                     summary.set_image(url=evidence.url)
                 else:
-                    summary.add_field(name="Evidence", value=evidence.url, inline=False)
-
+                    summary.add_field(name="**Evidence:**", value=evidence.url, inline=False)
+            
             summary.timestamp = discord.utils.utcnow()
             footer_icon = getattr(interaction.user.display_avatar, "url", None)
-            summary.set_footer(text=f"{interaction.user.display_name}", icon_url=footer_icon)
-
-            await summary_channel.send(embed=summary)
-
+            summary.set_footer(
+                text=f"Logged by {interaction.user.display_name}",
+                icon_url=footer_icon
+            )
+            
+            try:
+                await summary_channel.send(embed=summary)
+            except Exception as e:
+                logger.error(f"Error sending summary to channel: {e}", exc_info=True)
+        
+        # 8) Final confirmation
         await interaction.followup.send(
-            f"✅ Points have been logged for members in **{channel.name}**."
+            f"✅ Points have been logged for **{len(attendees)}** members in **{channel.name}**."
         )
+        
+        # Log audit
+        try:
+            await self.audit_service.log_operation(
+                user_id=0,  # Multiple users
+                action_type="CREATE",
+                data_type="vc_log_batch",
+                performed_by=interaction.user.id,
+                purpose=f"VC log event: {event}",
+                details={
+                    "channel": channel.name,
+                    "channel_id": channel.id,
+                    "amount": amount,
+                    "event": event,
+                    "attendees_count": len(attendees),
+                    "attendees": [int(m.id) for m in members]
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error logging audit: {e}", exc_info=True)
+
 
 async def setup(bot: commands.Bot):
+    """Setup function to load the cog"""
     await bot.add_cog(VCLogCog(bot))
+    logger.info("✅ VC Log cog loaded (Vox-link channels only)")

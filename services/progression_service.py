@@ -163,7 +163,7 @@ class ProgressionService:
             bar_current = min(points, rank_limit)
             bar_total = rank_limit
             if points >= rank_limit:
-                progress_display = f"{points} / {rank_limit} (LIMITE ATINGIDO)"
+                progress_display = f"{points} / {rank_limit} (LIMIT REACHED)"
             else:
                 progress_display = f"{points} / {rank_limit}"
         elif exp_needed > 0:
@@ -175,7 +175,7 @@ class ProgressionService:
             # Display shows actual progress towards next rank
             if points >= rank_limit:
                 extra_points = points - rank_limit
-                progress_display = f"{points} / {rank_limit} (LIMITE ATINGIDO)\nPontos extras: +{extra_points}"
+                progress_display = f"{points} / {rank_limit} (LIMIT REACHED)\nExtra points: +{extra_points}"
             else:
                 progress_display = f"{points} / {rank_limit}"
         else:
@@ -184,7 +184,7 @@ class ProgressionService:
             bar_total = rank_limit
             if points >= rank_limit:
                 extra_points = points - rank_limit
-                progress_display = f"{points} / {rank_limit} (LIMITE ATINGIDO)\nPontos extras: +{extra_points}"
+                progress_display = f"{points} / {rank_limit} (LIMIT REACHED)\nExtra points: +{extra_points}"
             else:
                 progress_display = f"{points} / {rank_limit}"
         

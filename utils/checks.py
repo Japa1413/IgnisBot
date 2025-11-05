@@ -74,8 +74,8 @@ def appcmd_moderator_or_owner():
     async def predicate(interaction: discord.Interaction) -> bool:
         if not is_moderator_or_owner(interaction):
             raise app_commands.CheckFailure(
-                "❌ Você precisa ser **moderador** ou **dono do servidor** para usar este comando.\n"
-                "Permissões necessárias: Gerenciar Mensagens ou Administrador."
+                "❌ You must be a **moderator** or **server owner** to use this command.\n"
+                "Required permissions: Manage Messages or Administrator."
             )
         return True
     return app_commands.check(predicate)

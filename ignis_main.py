@@ -23,6 +23,7 @@ from cogs.data_privacy import DataPrivacyCog
 from cogs.legal import LegalCog
 from cogs.cache_stats import CacheStatsCog
 from cogs.induction import InductionCog
+from cogs.rank import RankCog
 # If you have event_buttons.py as an extension with setup(bot), you can load it via load_extension
 
 intents = discord.Intents.default()
@@ -57,12 +58,17 @@ class IgnisBot(commands.Bot):
         await self.add_cog(LegalCog(self))
         await self.add_cog(CacheStatsCog(self))
         await self.add_cog(InductionCog(self))
+        await self.add_cog(RankCog(self))  # Rank management (nickname formatting, company mapping)
 
         # 4) Gamification Handlers DISABLED - Using manual progression system
         # from events.gamification_handlers import setup
         # await setup(self)
 
-        # 5) (Optional) Load extensions with setup(bot)
+        # 5) Role Sync Handler - Automatic rank sync from Discord roles (Bloxlink /update)
+        from events.role_sync_handler import setup as setup_role_sync
+        await setup_role_sync(self)
+
+        # 6) (Optional) Load extensions with setup(bot)
         # await self.load_extension("cogs.event_buttons")
 
 
