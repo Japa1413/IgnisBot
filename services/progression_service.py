@@ -162,7 +162,10 @@ class ProgressionService:
             # At max rank - show progress using rank_limit as reference
             bar_current = min(points, rank_limit)
             bar_total = rank_limit
-            progress_display = f"{points} / {rank_limit}"
+            if points >= rank_limit:
+                progress_display = f"{points} / {rank_limit} (LIMITE ATINGIDO)"
+            else:
+                progress_display = f"{points} / {rank_limit}"
         elif exp_needed > 0:
             # Progressing towards next rank
             # Show progress within current rank range
@@ -170,12 +173,20 @@ class ProgressionService:
             bar_current = min(points, rank_limit)
             bar_total = rank_limit
             # Display shows actual progress towards next rank
-            progress_display = f"{points} / {rank_limit}"
+            if points >= rank_limit:
+                extra_points = points - rank_limit
+                progress_display = f"{points} / {rank_limit} (LIMITE ATINGIDO)\nPontos extras: +{extra_points}"
+            else:
+                progress_display = f"{points} / {rank_limit}"
         else:
             # Edge case: no exp needed but not at max
             bar_current = min(points, rank_limit)
             bar_total = rank_limit
-            progress_display = f"{points} / {rank_limit}"
+            if points >= rank_limit:
+                extra_points = points - rank_limit
+                progress_display = f"{points} / {rank_limit} (LIMITE ATINGIDO)\nPontos extras: +{extra_points}"
+            else:
+                progress_display = f"{points} / {rank_limit}"
         
         # Generate progress bar
         bar = progress_bar(bar_current, bar_total, width=12)

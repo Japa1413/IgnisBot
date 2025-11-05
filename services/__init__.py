@@ -12,6 +12,7 @@ from .audit_service import AuditService
 from .xp_service import XPService
 from .level_service import LevelService
 from .progression_service import ProgressionService
+from .bloxlink_service import BloxlinkService
 
 __all__ = [
     'CacheService',
@@ -22,4 +23,5 @@ __all__ = [
     'XPService',
     'LevelService',
     'ProgressionService',
+    'BloxlinkService',
 ]
