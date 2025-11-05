@@ -2,7 +2,7 @@
 
 **Acordo de Nível de Serviço**  
 **Versão:** 1.0  
-**Última atualização:** 2024  
+**Última atualização: 2025-10-31  
 **Vigência:** Indefinida (até revogação)
 
 ---

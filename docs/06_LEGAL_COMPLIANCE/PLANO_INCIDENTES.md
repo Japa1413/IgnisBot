@@ -388,6 +388,6 @@ Este plano está em conformidade com:
 
 **Documento criado por:** AI-AuditEng  
 **Versão:** 1.0  
-**Última atualização:** 2024  
+**Última atualização: 2025-10-31  
 **Próxima revisão:** 2025 ou após incidente real
 

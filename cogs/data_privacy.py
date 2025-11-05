@@ -18,7 +18,8 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-from utils.database import get_user, get_pool
+from services.user_service import UserService
+from utils.database import get_pool
 from utils.consent_manager import (
     has_consent,
     give_consent,
@@ -67,7 +68,9 @@ class DataPrivacyCog(commands.Cog):
             log_data_access(user_id, "EXPORT", "user_data", user_id, "Access rights")
             
             # Coletar dados do usuário
-            user_data = await get_user(user_id)
+            # Use Service Layer (NEW - Architecture Phase 2)
+            user_service = UserService()
+            user_data = await user_service.get_user(user_id)
             consent_info = await get_consent_info(user_id)
             audit_history = await get_user_audit_history(user_id, limit=50)
             

@@ -4,10 +4,9 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-from utils.database import get_user, update_points
 from utils.checks import appcmd_channel_only
 from utils.config import STAFF_CMDS_CHANNEL_ID
-from utils.audit_log import log_data_operation
+from services.points_service import PointsService
 
 class RemovePointsCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -22,29 +21,63 @@ class RemovePointsCog(commands.Cog):
     @appcmd_channel_only(STAFF_CMDS_CHANNEL_ID)
     async def remove(self, interaction: discord.Interaction, member: discord.Member, points: int, reason: str):
         await interaction.response.defer(thinking=True, ephemeral=False)
+        
+        try:
+            # Use Service Layer
+            service = PointsService(self.bot)
+            transaction = await service.remove_points(
+                user_id=member.id,
+                amount=points,
+                reason=reason,
+                performed_by=interaction.user.id
+            )
+            
+            # Dispatch event with command context (wrap in try-except to not break on event errors)
+            try:
+                from events.event_types import PointsChangedEvent
+                event = PointsChangedEvent(
+                    user_id=transaction.user_id,
+                    before=transaction.before,
+                    after=transaction.after,
+                    delta=transaction.delta,
+                    reason=transaction.reason,
+                    performed_by=transaction.performed_by,
+                    command="/remove"
+                )
+                await self.bot.dispatch('points_changed', event)
+            except Exception as event_error:
+                # Log event error but don't fail the command
+                from utils.logger import get_logger
+                logger = get_logger(__name__)
+                logger.warning(f"Error dispatching points_changed event: {event_error}", exc_info=True)
 
-        user = await get_user(member.id)
-        if user is None:
-            await interaction.followup.send(f"❌ {member.mention} is not registered.")
-            return
-
-        before = int(user["points"])
-        # OPTIMIZATION: update_points now returns new value directly
-        after = await update_points(
-            member.id,
-            -abs(points),
-            performed_by=interaction.user.id,
-            purpose=f"Points removal via /remove: {reason}"
-        )
-
-        embed = discord.Embed(title="Points Revoked", color=discord.Color.red())
-        embed.add_field(name="**User:**", value=f"{member.mention}", inline=True)
-        embed.add_field(name="**Points:**", value=f"{before} -> {after}", inline=True)
-        embed.add_field(name="**Reason:**", value=reason, inline=True)
-        footer_icon = getattr(interaction.user.display_avatar, "url", None)
-        embed.set_footer(text=f"{interaction.user.display_name}", icon_url=footer_icon)
-        embed.timestamp = discord.utils.utcnow()
-        await interaction.followup.send(embed=embed)
+            embed = discord.Embed(title="Points Revoked", color=discord.Color.red())
+            embed.add_field(name="**User:**", value=f"{member.mention}", inline=True)
+            embed.add_field(name="**Points:**", value=f"{transaction.before} -> {transaction.after}", inline=True)
+            embed.add_field(name="**Reason:**", value=reason, inline=True)
+            footer_icon = getattr(interaction.user.display_avatar, "url", None)
+            embed.set_footer(text=f"{interaction.user.display_name}", icon_url=footer_icon)
+            embed.timestamp = discord.utils.utcnow()
+            
+            await interaction.followup.send(embed=embed)
+        except ValueError as e:
+            # Handle consent validation errors or user not found
+            error_msg = str(e)
+            if "consent" in error_msg.lower():
+                await interaction.followup.send(
+                    f"❌ {member.mention} has not given consent for data processing (LGPD Art. 7º, I).\n"
+                    f"Please ask them to use `/consent grant` first.",
+                    ephemeral=True
+                )
+            elif "not found" in error_msg.lower():
+                await interaction.followup.send(f"❌ {member.mention} is not registered.")
+            else:
+                await interaction.followup.send(f"❌ {error_msg}")
+        except Exception as e:
+            from utils.logger import get_logger
+            logger = get_logger(__name__)
+            logger.error(f"Error removing points for user {member.id}: {e}", exc_info=True)
+            await interaction.followup.send("❌ DB error while removing points.")
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(RemovePointsCog(bot))

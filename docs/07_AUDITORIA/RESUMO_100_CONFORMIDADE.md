@@ -112,6 +112,6 @@ A seção 11 já foi atualizada automaticamente. Apenas preencha:
 
 ---
 
-**Última atualização:** 2024  
+**Última atualização: 2025-10-31  
 **Status:** 🟢 Pronto para implementação (15 minutos)
 

@@ -74,5 +74,5 @@ Veja `CATALOGO_DOCUMENTACAO.md` para:
 
 ---
 
-**Última atualização:** 31/10/2024
+**Última atualização: 2025-10-31
 

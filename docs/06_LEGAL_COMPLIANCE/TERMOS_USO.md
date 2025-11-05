@@ -1,6 +1,6 @@
 ﻿# 📋 TERMOS DE USO - IGNISBOT
 
-**Última atualização:** 2024  
+**Última atualização: 2025-10-31  
 **Versão:** 1.0
 
 ---

@@ -1,6 +1,6 @@
 # ✅ STATUS DO BOT - TESTE DE EXECUÇÃO
 
-**Data:** 31/10/2024  
+**Data: 2025-10-31  
 **Status:** 🟢 **BOT RODANDO COM SUCESSO**
 
 ---
@@ -164,5 +164,5 @@ Se os comandos não aparecerem após 5 minutos:
 ---
 
 **Status:** 🟢 **OPERACIONAL**  
-**Última atualização:** 31/10/2024 16:07
+**Última atualização: 2025-10-31 16:07
 

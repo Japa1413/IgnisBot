@@ -1,6 +1,6 @@
 # 🔍 VERIFICAÇÃO DE FUNCIONALIDADES - IGNISBOT
 
-**Data:** 31/10/2024  
+**Data: 2025-10-31  
 **Status:** 🔧 **Correções Aplicadas**
 
 ---
@@ -117,6 +117,6 @@ Se os IDs estiverem incorretos, os comandos não funcionarão mesmo no canal "co
 
 ---
 
-**Última atualização:** 31/10/2024  
+**Última atualização: 2025-10-31  
 **Bot reiniciado com correções aplicadas**
 

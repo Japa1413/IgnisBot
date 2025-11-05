@@ -8,7 +8,8 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-from utils.database import ensure_user_exists, get_user, update_points
+from services.points_service import PointsService
+from services.user_service import UserService
 from utils.checks import appcmd_channel_only
 from utils.config import (
     STAFF_CMDS_CHANNEL_ID,
@@ -73,21 +74,41 @@ class VCLogCog(commands.Cog):
         embeds: List[discord.Embed] = []
         attendees: List[str] = []
 
+        # Use Service Layer (NEW - Architecture Phase 2)
+        points_service = PointsService(self.bot)
+        user_service = UserService()
+
         # OPTIMIZATION: Process members in parallel where possible
         async def process_member(member: discord.Member) -> Optional[tuple]:
             """Process a member and return embed and mention"""
             try:
-                await ensure_user_exists(member.id)
-                before_data = await get_user(member.id)
-                before = int(before_data["points"]) if before_data else 0
+                # Ensure user exists
+                user_data = await user_service.ensure_exists(member.id)
+                before = int(user_data.get("points", 0))
                 
-                # OPTIMIZATION: update_points returns new value directly
-                after = await update_points(
-                    member.id,
-                    amount,
+                # Add points using service (consent validation included)
+                transaction = await points_service.add_points(
+                    user_id=member.id,
+                    amount=amount,
+                    reason=f"VC Log: {event}",
                     performed_by=interaction.user.id,
-                    purpose=f"Points addition via /vc_log: {event}"
+                    check_consent=True  # Validate consent (LGPD Art. 7º, I)
                 )
+                
+                # Dispatch event with command context for handlers (audit, cache)
+                from events.event_types import PointsChangedEvent
+                event_obj = PointsChangedEvent(
+                    user_id=transaction.user_id,
+                    before=transaction.before,
+                    after=transaction.after,
+                    delta=transaction.delta,
+                    reason=transaction.reason,
+                    performed_by=transaction.performed_by,
+                    command="/vc_log"
+                )
+                await self.bot.dispatch('points_changed', event_obj)
+                
+                after = transaction.after
 
                 e = discord.Embed(title="Points Added", color=discord.Color.dark_green())
                 e.add_field(name="**User:**", value=member.mention, inline=False)
@@ -98,6 +119,17 @@ class VCLogCog(commands.Cog):
                 e.set_footer(text=f"{interaction.user.display_name}", icon_url=footer_icon)
                 
                 return (e, member.mention)
+            except ValueError as ex:
+                # Handle consent validation errors
+                error_msg = str(ex)
+                if "consent" in error_msg.lower():
+                    from utils.logger import get_logger
+                    logger = get_logger(__name__)
+                    logger.warning(f"User {member.id} attempted VC log without consent")
+                    # Skip this user but continue with others - return None
+                    return None
+                # Re-raise other ValueErrors
+                raise
             except Exception as ex:
                 from utils.logger import get_logger
                 logger = get_logger(__name__)

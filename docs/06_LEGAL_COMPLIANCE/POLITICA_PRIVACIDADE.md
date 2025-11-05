@@ -1,6 +1,6 @@
 ﻿# 🔒 POLÍTICA DE PRIVACIDADE - IGNISBOT
 
-**Última atualização:** 2024  
+**Última atualização:** 2025-10-31  
 **Versão:** 1.0  
 **Vigência:** Conforme LGPD (Lei nº 13.709/2018)
 

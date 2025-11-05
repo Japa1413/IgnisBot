@@ -54,7 +54,7 @@
 ## 📊 COMPARATIVO
 
 ### Antes
-- ❌ Datas inconsistentes (2024, 31/10/2024, etc.)
+- ❌ Data: 2025-10-31, etc.)
 - ❌ Comandos mistos (português/inglês)
 - ❌ Experiência confusa para usuários
 

@@ -1,7 +1,8 @@
 # 🏗️ ARQUITETURA DO SISTEMA - IGNISBOT
 
-**Versão:** 1.0  
-**Última atualização:** 2024
+**Versão:** 2.0  
+**Última atualização:** 2025-10-31  
+**Status:** ✅ Arquitetura Layered + Event-Driven implementada
 
 ---
 
@@ -13,6 +14,8 @@ O **IgnisBot** é um bot Discord desenvolvido em Python que implementa um sistem
 
 ## 2. ARQUITETURA GERAL
 
+### 2.1 Arquitetura Atual (Layered + Event-Driven)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     DISCORD API                             │
@@ -22,28 +25,50 @@ O **IgnisBot** é um bot Discord desenvolvido em Python que implementa um sistem
                         │ Eventos/Interações
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    IGNISBOT CORE                            │
-│                  (ignis_main.py)                            │
-│  • Bot Instance                                             │
-│  • Event Handlers                                           │
-│  • COG Loader                                               │
+│              PRESENTATION LAYER (COGs)                      │
+│  • userinfo   • add   • remove   • vc_log                   │
+│  • leaderboard • data_privacy • legal                      │
+└───────────────────────┬─────────────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  SERVICE LAYER                              │
+│  • PointsService  • UserService  • ConsentService          │
+│  • AuditService   • CacheService                           │
 └───────────────────────┬─────────────────────────────────────┘
                         │
         ┌───────────────┼───────────────┐
         │               │               │
         ▼               ▼               ▼
 ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│    COGs      │ │    UTILS     │ │   DATABASE   │
+│ REPOSITORY   │ │   EVENTS     │ │    CACHE     │
+│   LAYER      │ │   SYSTEM     │ │   MANAGER    │
 │              │ │              │ │              │
-│ • userinfo   │ │ • config     │ │ • MySQL Pool │
-│ • add        │ │ • database   │ │ • Queries    │
-│ • remove     │ │ • audit_log  │ │ • Tables     │
-│ • vc_log     │ │ • logger     │ │              │
-│ • leaderboard│ │ • checks     │ │              │
-│ • data_privacy│ │ • consent    │ │              │
-│ • legal      │ │              │ │              │
-└──────────────┘ └──────────────┘ └──────────────┘
+│ • UserRepo   │ │ • Handlers   │ │ • TTL Cache   │
+│ • AuditRepo  │ │ • Dispatcher │ │ • Invalidation│
+│ • ConsentRepo│ │              │ │ • Stats       │
+└──────┬───────┘ └───────────────┘ └──────┬───────┘
+       │                                   │
+       └───────────┬───────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────────────┐
+│              DATA ACCESS LAYER                              │
+│  • MySQL Pool (aiomysql)                                    │
+│  • Connection Pool (configurável)                          │
+└─────────────────────────────────────────────────────────────┘
 ```
+
+### 2.2 Legado (Deprecated)
+
+**Nota:** Arquitetura anterior (COGs → Utils → Database) ainda existe para compatibilidade, mas está sendo gradualmente substituída pela arquitetura Layered.
+
+**Código Deprecated:**
+- `utils/database.py::get_user()` - Use `UserRepository.get()`
+- `utils/database.py::create_user()` - Use `UserRepository.create()`
+- `utils/database.py::update_points()` - Use `UserRepository.update_points()`
+
+**Plano de Remoção:** Ver [`IMPLEMENTACAO_ARQUITETURA_OTIMIZADA.md`](../03_DESENVOLVIMENTO/IMPLEMENTACAO_ARQUITETURA_OTIMIZADA.md)
 
 ---
 
@@ -203,16 +228,20 @@ Usuário → Discord → IgnisBot → COG → Utils → Database
                                    Audit Log
 ```
 
-### 5.2 Exemplo: Adicionar Pontos
+### 5.2 Exemplo: Adicionar Pontos (Arquitetura Atual)
 
 ```
 1. Usuário executa /add @member 100 "Evento"
-2. AddPointsCog.add() é chamado
+2. AddPointsCog.add() é chamado (Presentation Layer)
 3. Verifica canal permitido (checks.py)
-4. Busca usuário (database.get_user)
-5. Atualiza pontos (database.update_points)
-   ├── Executa UPDATE no banco
-   └── Registra em audit_log
+4. Chama PointsService.add_points() (Service Layer)
+   ├── Valida consentimento (LGPD Art. 7º, I) - NOVO
+   ├── Chama UserRepository.get_or_create() (Repository Layer)
+   ├── Chama UserRepository.update_points() (Repository Layer)
+   └── Retorna PointsTransaction
+5. Dispatch evento 'points_changed' (Event System)
+   ├── AuditHandler registra em audit_log (assíncrono)
+   └── CacheHandler invalida cache (assíncrono)
 6. Retorna embed com resultado
 ```
 
@@ -375,7 +404,10 @@ Admin    Discord    IgnisBot    AddCog    Database    AuditLog
 
 ---
 
-**Documento mantido por:** AI-AuditEng  
-**Versão:** 1.0  
-**Última atualização:** 2024
+**Documento mantido por:** Equipe de Desenvolvimento  
+**Versão:** 2.0  
+**Última atualização:** 2025-10-31
+
+**Nota:** Este documento foi atualizado para refletir a arquitetura Layered + Event-Driven implementada. 
+Para detalhes completos da arquitetura proposta, ver [`ARQUITETURA_OTIMIZADA_PERFORMANCE.md`](ARQUITETURA_OTIMIZADA_PERFORMANCE.md).
 

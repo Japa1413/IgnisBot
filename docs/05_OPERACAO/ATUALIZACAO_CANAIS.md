@@ -1,6 +1,6 @@
 # 🔄 ATUALIZAÇÃO DE CONFIGURAÇÃO DE CANAIS
 
-**Data:** 31/10/2024  
+**Data: 2025-10-31  
 **Status:** ✅ **CONCLUÍDO**
 
 ---

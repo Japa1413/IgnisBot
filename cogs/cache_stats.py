@@ -11,7 +11,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-from utils.cache import get_cache_stats
+from services.cache_service import CacheService
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -33,7 +33,8 @@ class CacheStatsCog(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         
         try:
-            stats = get_cache_stats()
+            cache_service = CacheService()
+            stats = cache_service.get_stats()
             
             embed = discord.Embed(
                 title="📊 Cache Statistics",
@@ -89,7 +90,7 @@ class CacheStatsCog(commands.Cog):
                 inline=False
             )
             
-            embed.set_footer(text="Cache TTL: 30 seconds")
+            embed.set_footer(text=f"Cache TTL: {stats.get('ttl_seconds', 30)} seconds")
             embed.timestamp = discord.utils.utcnow()
             
             await interaction.followup.send(embed=embed, ephemeral=True)

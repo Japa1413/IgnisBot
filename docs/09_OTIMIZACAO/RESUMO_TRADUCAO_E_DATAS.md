@@ -54,7 +54,7 @@
 ## 📊 IMPACTO
 
 ### Antes
-- ❌ Datas inconsistentes (2024 vs 2025)
+- ❌ Data: 2025-10-31 vs 2025)
 - ❌ Comandos mistos (português/inglês)
 - ❌ Experiência inconsistente
 

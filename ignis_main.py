@@ -40,7 +40,13 @@ class IgnisBot(commands.Bot):
         # 1) Database first
         await initialize_db()
 
-        # 2) Load COGs (classes already imported)
+        # 2) Setup event handlers (NEW - Architecture Phase 3)
+        from events.handlers import setup_audit_handler, setup_cache_handler
+        setup_audit_handler(self)
+        setup_cache_handler(self)
+
+        # 3) Load COGs (classes already imported)
+        # Use corrected userinfo with progression system
         await self.add_cog(UserInfoCog(self))
         await self.add_cog(VCLogCog(self))
         await self.add_cog(AddPointsCog(self))
@@ -50,7 +56,11 @@ class IgnisBot(commands.Bot):
         await self.add_cog(LegalCog(self))
         await self.add_cog(CacheStatsCog(self))
 
-        # 3) (Optional) Load extensions with setup(bot)
+        # 4) Gamification Handlers DISABLED - Using manual progression system
+        # from events.gamification_handlers import setup
+        # await setup(self)
+
+        # 5) (Optional) Load extensions with setup(bot)
         # await self.load_extension("cogs.event_buttons")
 
 

@@ -8,10 +8,12 @@ from discord.ext import commands
 import aiomysql
 
 from utils.database import get_pool
+from services.consent_service import ConsentService
 
 class LeaderboardCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.consent_service = ConsentService()
 
     @app_commands.command(name="leaderboard", description="Shows the top 10 users with more points")
     async def leaderboard(self, interaction: discord.Interaction):
@@ -26,8 +28,16 @@ class LeaderboardCog(commands.Cog):
         # Use connection pool instead of creating direct connection
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cursor:
+                # Filter users with consent (LGPD Art. 7º, I - Base Legal: Consentimento)
                 await cursor.execute(
-                    "SELECT user_id, points FROM users ORDER BY points DESC LIMIT 10"
+                    """
+                    SELECT u.user_id, u.points 
+                    FROM users u
+                    INNER JOIN user_consent uc ON u.user_id = uc.user_id
+                    WHERE uc.consent_given = TRUE
+                    ORDER BY u.points DESC 
+                    LIMIT 10
+                    """
                 )
                 leaderboard = await cursor.fetchall()
 
