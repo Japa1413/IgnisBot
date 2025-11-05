@@ -14,12 +14,15 @@ from discord import app_commands
 from services.bloxlink_service import BloxlinkService
 from services.progression_service import ProgressionService
 from services.audit_service import AuditService
-from utils.checks import cmd_channel_only, appcmd_channel_only
-from utils.config import STAFF_CMDS_CHANNEL_ID, GUILD_ID
+from utils.checks import cmd_channel_only, appcmd_channel_only, appcmd_moderator_or_owner
+from utils.config import GUILD_ID
 from utils.logger import get_logger
 import os
 
 logger = get_logger(__name__)
+
+# Canal específico para comandos de indução e promoção
+PROMOTION_CHANNEL_ID = 1375941286267326532
 
 
 class PromotionCog(commands.Cog):
@@ -39,8 +42,8 @@ class PromotionCog(commands.Cog):
         new_rank="Novo cargo/rank",
         reason="Razão da promoção (opcional)"
     )
-    @appcmd_channel_only(STAFF_CMDS_CHANNEL_ID)
-    @app_commands.checks.has_permissions(administrator=True)
+    @appcmd_channel_only(PROMOTION_CHANNEL_ID)
+    @appcmd_moderator_or_owner()
     async def promote(
         self,
         interaction: discord.Interaction,
@@ -53,7 +56,8 @@ class PromotionCog(commands.Cog):
         
         Requisitos:
         - Membro deve estar verificado pelo Bloxlink
-        - Usuário deve ter permissão administrativa
+        - Usuário deve ser moderador ou dono do servidor
+        - Comando deve ser usado no canal específico
         - Membro deve ter pontos suficientes (se aplicável)
         """
         await interaction.response.defer(thinking=True, ephemeral=False)
