@@ -164,8 +164,11 @@ async def _post_event_with_description(
     from cogs.event_buttons import get_event_panel_cog
     event_panel_cog = get_event_panel_cog(bot)
     
-    if event_panel_cog and event_panel_cog.is_event_active():
+    if event_panel_cog is None:
+        logger.error("Event panel cog not found! Cannot check for active events.")
+    elif event_panel_cog.is_event_active():
         active_info = event_panel_cog.get_active_event_info()
+        logger.warning(f"Blocked event posting attempt: {event_key} - Active event: {active_info}")
         error_msg = (
             "❌ **There is already an active event!**\n\n"
             f"{active_info}\n\n"
@@ -174,6 +177,8 @@ async def _post_event_with_description(
         )
         await interaction.followup.send(error_msg, ephemeral=True)
         return
+    else:
+        logger.debug(f"No active event found, proceeding with event posting: {event_key}")
     
     preset = EVENT_PRESETS.get(event_key)
     if not preset:
@@ -244,6 +249,9 @@ async def _post_event_with_description(
                 host_user=host_user,
                 event_title=preset['title']
             )
+            logger.info(f"✅ Event marked as active: {preset['title']} (Event ID: {event_message_id}, End ID: {end_message_id})")
+        else:
+            logger.error(f"❌ Failed to mark event as active! event_panel_cog={event_panel_cog is not None}, event_message_id={event_message_id}, end_message_id={end_message_id}")
         
         await interaction.followup.send(f"✅ Posted **{preset['title']}** event.", ephemeral=True)
         logger.info(f"Event '{preset['title']}' posted by {host_user.id}")
@@ -534,4 +542,14 @@ async def setup(bot: commands.Bot):
 
 def get_event_panel_cog(bot: commands.Bot) -> SalamandersEventPanel | None:
     """Helper to get the event panel cog instance."""
-    return bot.get_cog("SalamandersEventPanel")
+    # Try to get by name first
+    cog = bot.get_cog("SalamandersEventPanel")
+    if cog:
+        return cog
+    
+    # Fallback: search by type
+    for cog_instance in bot.cogs.values():
+        if isinstance(cog_instance, SalamandersEventPanel):
+            return cog_instance
+    
+    return None
