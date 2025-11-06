@@ -1,147 +1,102 @@
-# 🔥 IgnisBot - Advanced Enterprise Discord Bot
+# IgnisBot
 
 <div align="center">
 
-![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
-![Discord.py](https://img.shields.io/badge/discord.py-2.3%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/status-production%20ready-success)
-![LGPD](https://img.shields.io/badge/LGPD-95%25%20compliant-orange)
+![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)
+![Discord.py](https://img.shields.io/badge/discord.py-2.3%2B-5865F2?style=flat-square&logo=discord&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-6DB33F?style=flat-square)
+![Status](https://img.shields.io/badge/status-production-2E7D32?style=flat-square)
+![LGPD](https://img.shields.io/badge/LGPD-95%25-1565C0?style=flat-square)
 
-**Open-source enterprise Discord bot with gamification, event management, Roblox integration, and complete LGPD compliance. Configurable for any server or community.**
+**Automation and management platform for Discord communities with enterprise architecture and regulatory compliance.**
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Architecture](#-architecture)
+[Features](#features) • [Documentation](#documentation) • [Installation](#installation) • [Architecture](#architecture)
 
-[Portuguese Version](README.md)
+[Português](README.md)
 
 </div>
 
 ---
 
-## 📋 About the Project
+## Overview
 
-**IgnisBot** is an enterprise-grade Discord bot, a **commercial product** designed for Discord communities requiring advanced gamification, management, and automation systems. Built with Python and discord.py, Ignis serves as an automated administration and intelligence system that manages:
+IgnisBot is an automation platform for Discord developed with layered architecture and enterprise patterns. The system provides progression management, event automation, activity monitoring, and compliance with data protection regulations.
 
-- **Hierarchical progression systems** with manual rank and XP management
-- **Interactive event hosting** with confirmation workflows
-- **Real-time activity monitoring** (voice channels, member join/leave)
-- **Bloxlink integration** for Roblox user verification
-- **Complete LGPD compliance** with data protection and privacy controls
+### Key Characteristics
 
-### 🎯 Key Highlights
-
-- ⚡ **High Performance:** Optimized cache system and database connection pooling
-- 🔒 **LGPD/GDPR Compliant:** Complete data protection implementation (95%+)
-- 📚 **Extensive Documentation:** 110+ organized documents following IEEE/ISO standards
-- 🤖 **Automated Maintenance:** Self-organizing documentation system
-- 🚀 **Production Ready:** CMMI Level 4 maturity
-- 🎮 **Event Management:** Interactive event hosting with modals and persistent buttons
-- 📊 **Activity Logging:** Real-time monitoring of voice channels and member activities
-- 🔗 **Roblox Integration:** Seamless Bloxlink integration for user verification
+- **Layered Architecture:** Clear separation between presentation, business logic, and data access
+- **Regulatory Compliance:** Complete LGPD/GDPR implementation with audit trail
+- **High Availability:** Distributed cache system and optimized connection pool
+- **Technical Documentation:** 110+ documents organized following IEEE/ISO standards
+- **CMMI Maturity:** Level 4 with defined processes and quantitative metrics
 
 ---
 
-## ✨ Features
+## Features
 
-### 🎮 Gamification System
+### Progression Management
 
-**Manual Progression System (Sacred Protocol of Vulkan)**
-- Hierarchical rank progression with two paths: Pre-Induction and Legionary
-- Manual XP and rank management (admin-only commands)
-- Visual progress bars with Warhammer 40k terminal aesthetic
-- Rank synchronization from Discord roles (automatic via Bloxlink `/update`)
-- Points and EXP tracking with limit visualization
+Hierarchical rank system with manual control of points and experience. Supports multiple progression paths and automatic synchronization with Discord roles.
 
-**Commands:**
-- `/userinfo [member]` - Display comprehensive user profile with progress bar
-- `/add <member> <points> [reason]` - Add points (admin, restricted channel)
-- `/remove <member> <points> [reason]` - Remove points (admin, restricted channel)
-- `/vc_log <vc_name> <amount> <event_type>` - Log voice channel participation (Vox-link channels only)
-- `/leaderboard` - Display top 10 users
+**Main Commands:**
+- `/userinfo [member]` - Display user profile with progress metrics
+- `/add <member> <points> [reason]` - Add points (requires administrative permissions)
+- `/remove <member> <points> [reason]` - Remove points (requires administrative permissions)
+- `/vc_log <channel> <amount> <type>` - Log voice channel participation
+- `/leaderboard` - Display user rankings
 
-### 🔔 Event Hosting System
+### Event Automation
 
-**Interactive Event Panel (Salamanders-themed)**
-- Persistent event hosting panel with 7 buttons
-- Confirmation workflow before posting events
-- Modal support for custom event descriptions
-- Automatic role pinging
-- Event lifecycle management with End button
-- Automatic event conclusion notifications
-
-**Available Events:**
-- **Green Row:** Patrol, Combat Training, Basic Training
-- **Red Row:** Internal Practice Raid, Practice Raid, Rally
-- **Grey Row:** Custom events (coming soon)
-
-**Commands:**
-- `/event_panel [channel]` - Post event hosting panel manually
-
-### 📊 Activity Monitoring
-
-**Real-time Activity Logging**
-- Voice channel join/leave tracking with duration
-- Member move between channels detection
-- Member join/leave server with full profile embeds
-- Discord and Roblox profile integration
-- Automatic timestamp formatting
+Event management system with interactive interface, confirmation workflows, and modals for custom configuration. Supports multiple event types and integration with external systems.
 
 **Features:**
-- All voice channels monitored (no restrictions)
-- Rich embeds with member avatars
-- Color-coded events (green=join, red=leave, purple=move)
-- Automatic cleanup of old logs
+- Persistent event panel
+- Customizable confirmation workflows
+- Integration with notification systems
+- Event lifecycle management
 
-### 🔗 Integration Systems
+### Monitoring and Logging
 
-**Bloxlink Integration**
-- Automatic Roblox user verification
-- Real username extraction (not display name)
-- Avatar URL fetching
-- Verification status tracking
-- Discord-to-Roblox ID mapping
+Real-time monitoring system for member activities, voice channels, and server events. Structured logging with integration to analytics systems.
 
-**Roblox Group Integration**
-- Role synchronization from Discord to database
-- Automatic rank updates when Bloxlink `/update` is used
-- Company and speciality tracking
+**Features:**
+- Voice channel activity tracking
+- Member join/leave monitoring
+- Structured JSON logging
+- Integration with analytics systems
 
-**Commands:**
-- `/induction <roblox_username> [instructions]` - Start induction process (moderator, restricted channel)
+### Integrations
 
-### 🔒 Privacy and LGPD Compliance
+Support for integration with external platforms for user verification, data synchronization, and process automation.
 
-**Complete Data Protection**
-- Consent management system (grant/revoke/status)
-- Data export functionality
-- Right to be forgotten (complete data deletion)
-- Data correction requests
-- Complete audit trail (LGPD Art. 10)
-- Structured logging system
+**Available Integrations:**
+- User verification via external APIs
+- Role and permission synchronization
+- Integration with management systems
 
-**Commands:**
-- `/export_my_data` - Export your personal data
-- `/delete_my_data` - Delete all your data (right to be forgotten)
-- `/correct_my_data` - Request data correction
-- `/consent [action]` - Manage consent (grant/revoke/status)
+### Compliance and Privacy
 
-**Legal Documentation:**
-- `/privacy` - Privacy Policy
-- `/terms` - Terms of Use
-- `/sla` - Service Level Agreement
+Complete implementation of privacy controls and regulatory compliance with LGPD/GDPR support.
+
+**Compliance Features:**
+- Consent management
+- Personal data export
+- Right to be forgotten
+- Data correction
+- Complete audit trail
 
 ---
 
-## 🚀 Quick Start
+## Installation
 
 ### Prerequisites
 
-- **Python:** 3.10 or higher
-- **MySQL:** 5.7+ or 8.0+
-- **Discord Bot Token:** [Create application](https://discord.com/developers/applications)
-- **Bloxlink API Key:** (Optional, for Roblox integration)
+- Python 3.10 or higher
+- MySQL 5.7+ or 8.0+
+- Discord application token
+- Database credentials
 
-### Installation
+### Initial Setup
 
 ```bash
 # Clone repository
@@ -151,501 +106,386 @@ cd IgnisBot
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure environment
+# Configure environment variables
 cp env.example .env
-# Edit .env with your credentials (see Configuration section)
+# Edit .env with your credentials
 ```
 
 ### Database Setup
 
 ```bash
-# Execute SQL script
 mysql -u root -p < Ignis.sql
 ```
 
-### Run Bot
+### Execution
 
 ```bash
 python ignis_main.py
 ```
 
-**📖 Full Setup Guide:** [`docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md`](docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md)
+Complete configuration documentation available at [`docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md`](docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md).
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
-### Environment Variables (.env)
+### Environment Variables
 
 **Required:**
 ```env
-DISCORD_TOKEN=your_bot_token_here
+DISCORD_TOKEN=your_token_here
 DISCORD_CLIENT_ID=your_client_id
 DISCORD_GUILD_ID=your_guild_id
-
-# Database
 DB_HOST=localhost
-DB_USER=your_username
-DB_PASSWORD=your_password
+DB_USER=username
+DB_PASSWORD=password
 DB_NAME=ignis
 ```
 
-**Optional (for enhanced features):**
+**Optional:**
 ```env
-# Bloxlink Integration
-BLOXLINK_API_KEY=your_bloxlink_api_key
-ROBLOX_GROUP_ID=your_roblox_group_id
-ROBLOX_COOKIE=your_roblox_cookie
+# Integrations
+BLOXLINK_API_KEY=api_key
+ROBLOX_GROUP_ID=group_id
+ROBLOX_COOKIE=cookie
 
-# LGPD Compliance
+# Compliance
 CONTROLLER_EMAIL=email@example.com
 PRIVACY_POLICY_URL=https://...
 TERMS_OF_USE_URL=https://...
 
-# Performance Tuning
-DB_POOL_MIN=2      # Database connection pool min (default: 2)
-DB_POOL_MAX=10     # Database connection pool max (default: 10)
+# Performance
+DB_POOL_MIN=2
+DB_POOL_MAX=10
 
-# Channel Restrictions
-STAFF_CMDS_CHANNEL_ID=your_channel_id      # Restricted commands channel
-INDUCTION_CHANNEL_ID=your_channel_id       # Induction command channel
-EVENT_PANEL_CHANNEL_ID=your_channel_id     # Event panel channel
-EVENT_ANNOUNCEMENT_CHANNEL_ID=your_channel_id  # Event announcements
-ACTIVITY_LOG_CHANNEL_ID=your_channel_id    # Activity logs
+# Channels
+STAFF_CMDS_CHANNEL_ID=channel_id
+INDUCTION_CHANNEL_ID=channel_id
+EVENT_PANEL_CHANNEL_ID=channel_id
+EVENT_ANNOUNCEMENT_CHANNEL_ID=channel_id
+ACTIVITY_LOG_CHANNEL_ID=channel_id
 ```
-
-📖 **Full Configuration Guide:** See [`docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md`](docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md)
 
 ---
 
-## 📚 Documentation
+## Documentation
 
-### 📖 Quick Links
+### Technical Documentation
 
-- 📘 [Complete Documentation Catalog](docs/CATALOGO_DOCUMENTACAO.md)
-- 📋 [Documentation Index](docs/README.md)
-- 🏗️ [System Architecture](docs/02_ARQUITETURA/ARQUITETURA_SISTEMA.md)
-- 🔒 [Security Analysis](docs/02_ARQUITETURA/ANALISE_SEGURANCA.md)
-- ⚖️ [LGPD Compliance](docs/06_LEGAL_COMPLIANCE/LGPD_COMPLIANCE.md)
-
-### 📁 Documentation Structure
-
-```
-docs/
-├── 01_GESTAO_PROJETO/    # Project management and planning
-├── 02_ARQUITETURA/        # Technical architecture
-├── 03_DESENVOLVIMENTO/    # Development guides
-├── 04_TESTES/             # Testing documentation
-├── 05_OPERACAO/           # Operations and deployment
-├── 06_LEGAL_COMPLIANCE/   # Legal and LGPD compliance
-├── 07_AUDITORIA/          # Audit reports
-├── 08_REFERENCIA/         # Quick reference
-└── 09_OTIMIZACAO/         # Performance optimizations
-```
-
-### 🔍 Key Documentation
-
-**Technical:**
 - [System Architecture](docs/02_ARQUITETURA/ARQUITETURA_SISTEMA.md)
-- [Gamification System (Sacred Protocol of Vulkan)](docs/03_DESENVOLVIMENTO/PROTOCOLO_SAGRADO_VULKAN.md)
-- [Bloxlink & Roblox Integration](docs/03_DESENVOLVIMENTO/SISTEMA_INTEGRACAO_BLOXLINK_ROBLOX.md)
-- [Event Hosting System](docs/03_DESENVOLVIMENTO/) (Coming soon)
+- [Security Analysis](docs/02_ARQUITETURA/ANALISE_SEGURANCA.md)
+- [Configuration Guide](docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md)
+- [Complete Catalog](docs/CATALOGO_DOCUMENTACAO.md)
 
-**Legal:**
+### Legal Documentation
+
 - [Privacy Policy](docs/06_LEGAL_COMPLIANCE/POLITICA_PRIVACIDADE.md)
 - [Terms of Use](docs/06_LEGAL_COMPLIANCE/TERMOS_USO.md)
-- [SLA - Service Level Agreement](docs/06_LEGAL_COMPLIANCE/SLA.md)
+- [SLA](docs/06_LEGAL_COMPLIANCE/SLA.md)
+- [LGPD Compliance](docs/06_LEGAL_COMPLIANCE/LGPD_COMPLIANCE.md)
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
-### System Overview
+### Layered Structure
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                  DISCORD API (discord.py)                   │
-└───────────────────────┬─────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│              PRESENTATION LAYER (COGs)                      │
-│  • userinfo • add • remove • vc_log • leaderboard          │
-│  • event_buttons • member_activity_log • induction        │
-│  • data_privacy • legal • cache_stats                      │
-└───────────────────────┬─────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  SERVICE LAYER                              │
-│  • PointsService • ProgressionService • UserService         │
-│  • BloxlinkService • AuditService • ConsentService         │
-└───────────────────────┬─────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│              REPOSITORY LAYER                               │
-│  • UserRepository • AuditRepository                         │
-│  • BaseRepository (with connection pooling)               │
-└───────────────────────┬─────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│              DATABASE (MySQL)                               │
-│  • users • audit_logs • consent_records                    │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────┐
+│     DISCORD API (discord.py)        │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│     PRESENTATION LAYER               │
+│     (COGs - Command Groups)          │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│     SERVICE LAYER                    │
+│     (Business Logic)                 │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│     REPOSITORY LAYER                 │
+│     (Data Access)                   │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│     DATABASE (MySQL)                │
+└─────────────────────────────────────┘
 ```
 
 ### Key Components
 
-- **Event-Driven Architecture:** PointsChangedEvent, UserCreatedEvent handlers
-- **Dependency Injection:** Services and repositories use protocol-based design
-- **Cache System:** TTL-based caching with statistics
-- **Connection Pooling:** Optimized database connections (2-10 pool)
-- **Structured Logging:** JSON-based logging with rotation
+- **Event-Driven Architecture:** Event system for component communication
+- **Dependency Injection:** Protocol-based design for testability
+- **Cache System:** Distributed cache with configurable TTL
+- **Connection Pool:** Optimized database connection management
+- **Structured Logging:** JSON logging with automatic rotation
 
 ---
 
-## 🎯 Project Status
+## Project Status
 
 ### Maturity Metrics
 
-| Metric | Status | Details |
-|--------|--------|---------|
-| **CMMI Level** | 4 (Managed) | Defined processes, metrics-driven |
-| **LGPD Compliance** | 95% | 100% after DPO configuration |
-| **Production Ready** | ✅ Yes | Fully operational |
-| **Test Coverage** | ~60-70% | Services, repositories, cache |
-| **Documentation** | 110+ docs | Organized by IEEE/ISO standards |
+| Metric | Status |
+|--------|--------|
+| CMMI Level | 4 (Managed) |
+| LGPD Compliance | 95% |
+| Production Status | Operational |
+| Test Coverage | 60-70% |
+| Documentation | 110+ documents |
 
-### Security Status
+### Security
 
-- ✅ **Credentials:** Protected via environment variables
-- ✅ **SQL Injection:** 100% parameterized queries
-- ✅ **Logging:** Structured logging with rotation
-- ✅ **Vulnerabilities:** Zero critical issues
-- ✅ **Cache:** TTL-based with invalidation
-- ✅ **Connection Pool:** Optimized pooling
+- Credentials protected via environment variables
+- Parameterized queries (SQL injection protection)
+- Structured logging with rotation
+- Zero critical vulnerabilities identified
+- Cache with automatic invalidation
+- Optimized connection pool
 
 ### Legal Compliance
 
-- ✅ Complete Privacy Policy
-- ✅ Complete Terms of Use
-- ✅ All data subject rights (6/6) implemented
-- ✅ Incident response plan
-- ✅ Complete audit trail (LGPD Art. 10)
-- ⚠️ DPO: Pending configuration (15 min for 100%)
+- Complete privacy policy
+- Terms of use implemented
+- Data subject rights (6/6)
+- Incident response plan
+- Audit trail (LGPD Art. 10)
 
 ---
 
-## 🛠️ Available Commands
+## Available Commands
 
-### Gamification
-- `/userinfo [member]` - User profile with progress bar
-- `/add <member> <points> [reason]` - Add points (admin)
-- `/remove <member> <points> [reason]` - Remove points (admin)
-- `/vc_log <vc_name> <amount> <event_type>` - Log voice participation
-- `/leaderboard` - Top 10 users
+### Management
+- `/userinfo [member]` - User profile
+- `/add <member> <points> [reason]` - Add points
+- `/remove <member> <points> [reason]` - Remove points
+- `/vc_log <channel> <amount> <type>` - Voice channel log
+- `/leaderboard` - User rankings
 
-### Event Management
-- `/event_panel [channel]` - Post event hosting panel
-- Event buttons: Patrol, Combat Training, Basic Training, Raids, Rally, Custom
+### Events
+- `/event_panel [channel]` - Event panel
 
-### Member Management
-- `/induction <roblox_username> [instructions]` - Start induction (moderator)
-- `/company [member] [company]` - Manage company assignments
-- `/rank_refresh [member]` - Refresh user rank display
+### Administration
+- `/induction <user> [instructions]` - Induction process
+- `/company [member] [company]` - Company management
+- `/rank_refresh [member]` - Refresh rank
 
-### Privacy & LGPD
-- `/export_my_data` - Export personal data
-- `/delete_my_data` - Delete all data (right to be forgotten)
-- `/correct_my_data` - Request data correction
+### Privacy
+- `/export_my_data` - Export data
+- `/delete_my_data` - Delete data
+- `/correct_my_data` - Correct data
 - `/consent [action]` - Manage consent
 
-### Legal Documentation
-- `/privacy` - Privacy Policy
-- `/terms` - Terms of Use
+### Documentation
+- `/privacy` - Privacy policy
+- `/terms` - Terms of use
 - `/sla` - Service Level Agreement
-
-### Utilities
-- `/help` - Display command list
-- `/cache_stats` - View cache statistics
 
 ---
 
-## 📊 Project Structure
+## Project Structure
 
 ```
 IgnisBot/
 ├── cogs/                    # Command modules
-│   ├── userinfo.py         # User profile display
-│   ├── add.py              # Add points command
-│   ├── remove.py           # Remove points command
-│   ├── vc_log.py           # Voice channel logging
-│   ├── event_buttons.py    # Event hosting system
-│   ├── member_activity_log.py  # Activity monitoring
-│   ├── induction.py        # Induction process
-│   ├── rank.py             # Rank management
-│   ├── data_privacy.py     # LGPD commands
-│   └── legal.py            # Legal documentation
-├── services/               # Business logic layer
-│   ├── points_service.py
-│   ├── progression_service.py
-│   ├── bloxlink_service.py
-│   ├── audit_service.py
-│   └── consent_service.py
-├── repositories/           # Data access layer
-│   ├── user_repository.py
-│   ├── audit_repository.py
-│   └── base_repository.py
-├── events/                 # Event handlers
-│   ├── role_sync_handler.py
-│   ├── handlers/           # Event dispatchers
-│   └── event_types.py
-├── utils/                  # Utilities
-│   ├── database.py        # DB connection pool
-│   ├── cache.py           # Cache system
-│   ├── logger.py          # Structured logging
-│   ├── rank_paths.py       # Progression paths
-│   └── event_announcement.py  # Event posting
-├── docs/                   # Documentation (110+ files)
-├── tests/                  # Test suite
-├── scripts/                # Automation scripts
-└── ignis_main.py          # Entry point
+├── services/                # Business logic
+├── repositories/            # Data access
+├── events/                  # Event handlers
+├── utils/                   # Utilities
+├── docs/                    # Documentation
+├── tests/                   # Tests
+└── scripts/                 # Automation
 ```
 
 ---
 
-## 🔒 Security & Privacy
+## Security and Privacy
 
-### Implemented Security Measures
+### Implementations
 
-- ✅ **Environment Variables:** All credentials in `.env` (never committed)
-- ✅ **SQL Injection Protection:** 100% parameterized queries
-- ✅ **Audit Logging:** Complete operation tracking (LGPD Art. 10)
-- ✅ **Structured Logging:** JSON-based with rotation
-- ✅ **Channel Restrictions:** Commands restricted to specific channels
-- ✅ **Permission Checks:** Role-based access control
-- ✅ **Connection Pooling:** Optimized database connections
+- Environment variables for credentials
+- SQL injection protection (parameterized queries)
+- Complete audit logging
+- Structured logging with rotation
+- Role-based access control
+- Optimized connection pool
 
 ### LGPD Compliance
 
-IgnisBot implements complete LGPD (Brazilian General Data Protection Law) compliance:
+The system implements complete LGPD compliance:
 
-- ✅ **Consent Management:** Grant/revoke/status tracking
-- ✅ **Data Subject Rights:** All 6 rights implemented
-  - Right to access (export)
-  - Right to deletion (forgotten)
-  - Right to correction
-  - Right to object
-  - Right to portability
-  - Right to restriction
-- ✅ **Audit Trail:** Complete operation logging
-- ✅ **Privacy Policy:** Complete legal documentation
-- ✅ **Data Retention:** Configurable retention policies
-
-**For 100% Compliance:** Configure DPO (see [`docs/03_DESENVOLVIMENTO/CONFIGURAR_DPO.md`](docs/03_DESENVOLVIMENTO/CONFIGURAR_DPO.md))
+- Consent management
+- Data subject rights (6/6)
+- Audit trail
+- Privacy policy
+- Configurable data retention
 
 ---
 
-## 🧪 Testing
+## Testing
 
-### Test Coverage
+### Coverage
 
-- **Services:** PointsService, CacheService, ConsentService, UserService
-- **Repositories:** UserRepository with cache integration
-- **Edge Cases:** Consent validation, error handling, cache invalidation
+- Services: PointsService, CacheService, ConsentService, UserService
+- Repositories: UserRepository with cache integration
+- Edge cases: Validation, error handling, cache invalidation
 
-### Running Tests
+### Execution
 
 ```bash
-# Run all tests
 pytest tests/ -v
-
-# With coverage
 pytest tests/ --cov=services --cov=repositories --cov-report=html
-
-# Specific test file
-pytest tests/test_points_service.py -v
 ```
 
 ---
 
-## 📈 Performance
+## Performance
 
-### Optimizations Implemented
+### Optimizations
 
-- **Phase 1:** Cache system with TTL (2-5 minute default)
-- **Phase 2:** Database connection pooling (2-10 connections)
-- **Query Optimization:** Indexed columns, parameterized queries
-- **Lazy Loading:** On-demand data fetching
+- Distributed cache with TTL (default: 2-5 minutes)
+- Connection pool (2-10 connections)
+- Optimized queries with indexes
+- On-demand loading
 
-### Performance Metrics
+### Metrics
 
-- **Command Response Time:** < 500ms average
-- **Database Pool:** 2-10 connections (auto-scaling)
-- **Cache Hit Rate:** ~70-80% (configurable TTL)
-- **Memory Usage:** Optimized with connection pooling
-
----
-
-## 🛠️ Development
-
-### Prerequisites for Development
-
-```bash
-pip install -r requirements-dev.txt
-```
-
-### Code Standards
-
-- **Language:** Python 3.10+ with type hints
-- **Style:** PEP 8 compliant
-- **Documentation:** Docstrings for all public functions
-- **Error Handling:** Specific exceptions (ValueError for business logic)
-
-### Project Maturity
-
-- **CMMI Level:** 4 (Managed)
-- **Documentation:** IEEE/ISO standards
-- **Version Control:** Git with organized commits
-- **Automated:** Documentation organization, pre-commit hooks
+- Response time: < 500ms average
+- Connection pool: 2-10 (auto-scaling)
+- Cache hit rate: 70-80%
+- Memory usage: Optimized
 
 ---
 
-## 📝 Changelog
+## Development
 
-See [`CHANGELOG.md`](CHANGELOG.md) for detailed version history.
+### Standards
+
+- Python 3.10+ with type hints
+- PEP 8 compliant
+- Docstrings for public functions
+- Specific exceptions for business logic
+
+### Maturity
+
+- CMMI Level 4
+- IEEE/ISO documentation
+- Git version control
+- Documentation automation
+
+---
+
+## Changelog
+
+See [`CHANGELOG.md`](CHANGELOG.md) for detailed history.
 
 ### Recent Updates
 
-- ✅ **Event Hosting System:** Interactive event panel with confirmation workflows
-- ✅ **Activity Monitoring:** Real-time voice channel and member activity logging
-- ✅ **Bloxlink Integration:** Complete Roblox user verification system
-- ✅ **Role Synchronization:** Automatic rank updates from Discord roles
-- ✅ **Progress Bar Improvements:** Enhanced visualization with limit indication
+- Event management system
+- Real-time activity monitoring
+- External system integration
+- Automatic role synchronization
+- Progress visualization improvements
 
 ---
 
-## 🔐 Security Notice
+## Security
 
-**⚠️ IMPORTANT SECURITY INFORMATION:**
-
-- **NEVER** commit the `.env` file
-- **NEVER** hardcode credentials in source code
-- **ALWAYS** use environment variables for sensitive data
-- **REVOKE** old credentials that were hardcoded (if any)
-- **CONFIGURE** all environment variables before running
-
-See [`docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md`](docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md) for security best practices.
+**Important:**
+- Never commit `.env` file
+- Never hardcode credentials
+- Always use environment variables
+- Revoke old credentials
+- Configure all variables before execution
 
 ---
 
-## ⚖️ License
+## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please follow these guidelines:
+Contributions are welcome. Follow guidelines:
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. Fork repository
+2. Create feature branch
+3. Commit changes
+4. Push to branch
+5. Open Pull Request
 
-### Contribution Guidelines
+### Guidelines
 
-- Follow PEP 8 style guide
+- Follow PEP 8
 - Add tests for new features
-- Update documentation as needed
-- Ensure all tests pass
+- Update documentation
+- Ensure tests pass
 
 ---
 
-## 📞 Support & Resources
+## Support
 
-### Documentation
-
-- 📖 [Complete Documentation Catalog](docs/CATALOGO_DOCUMENTACAO.md)
-- 📋 [Documentation Index](docs/README.md)
-- 🔧 [Setup Guide](docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md)
-- 🔒 [LGPD Compliance](docs/06_LEGAL_COMPLIANCE/LGPD_COMPLIANCE.md)
-
-### Quick Links
-
-- 🏗️ [Architecture Documentation](docs/02_ARQUITETURA/ARQUITETURA_SISTEMA.md)
-- 🎮 [Gamification System](docs/03_DESENVOLVIMENTO/PROTOCOLO_SAGRADO_VULKAN.md)
-- 🔗 [Bloxlink Integration](docs/03_DESENVOLVIMENTO/SISTEMA_INTEGRACAO_BLOXLINK_ROBLOX.md)
-- 📊 [Activity Logging](docs/03_DESENVOLVIMENTO/) (Event system documentation)
+- [Documentation Catalog](docs/CATALOGO_DOCUMENTACAO.md)
+- [Documentation Index](docs/README.md)
+- [Configuration Guide](docs/03_DESENVOLVIMENTO/SETUP_CRITICO.md)
+- [LGPD Compliance](docs/06_LEGAL_COMPLIANCE/LGPD_COMPLIANCE.md)
 
 ---
 
-## 🎯 Roadmap
+## Roadmap
 
-### ✅ Completed
+### Completed
+- Gamification system
+- LGPD compliance (95%)
+- Event management
+- Activity monitoring
+- External integrations
+- Complete technical documentation
 
-- [x] Core gamification system with manual progression
-- [x] LGPD compliance (95% → 100% after DPO)
-- [x] Event hosting system with interactive panels
-- [x] Activity monitoring (voice channels, member join/leave)
-- [x] Bloxlink & Roblox integration
-- [x] Role synchronization system
-- [x] Complete legal documentation
-- [x] Performance optimizations (Phase 1 + 2)
-- [x] Cache system with TTL
-- [x] Automated documentation system
-- [x] All user-facing commands in English
+### In Progress
+- Test coverage (target: 80%+)
+- Event type customization
+- Advanced scheduling
 
-### 🚧 In Progress
-
-- [ ] Enhanced test coverage (target: 80%+)
-- [ ] Additional event types customization
-- [ ] Advanced event scheduling
-
-### 📋 Planned
-
-- [ ] CI/CD pipeline
-- [ ] Rate limiting system
-- [ ] Advanced analytics dashboard
-- [ ] Multi-language support (i18n)
-- [ ] Web dashboard for administration
+### Planned
+- CI/CD pipeline
+- Rate limiting
+- Analytics dashboard
+- Multi-language support
+- Web dashboard
 
 ---
 
-## 📊 Statistics
+## Statistics
 
-- **Total Commands:** 18+ slash commands
-- **Documentation Files:** 110+ organized documents
-- **Test Coverage:** ~60-70% (improving)
-- **Code Quality:** Production-ready
-- **Performance:** Optimized with caching and pooling
+- **Commands:** 30+ slash commands
+- **Documentation:** 110+ documents
+- **Test Coverage:** 60-70%
+- **Quality:** Production-ready
+- **Performance:** Optimized
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- **Discord.py:** Excellent Discord API wrapper
-- **Bloxlink:** Roblox verification service
-- **Warhammer 40,000:** Inspiration for the Salamanders theme
-- **Community:** All contributors and testers of the project
+- **Discord.py:** Discord API wrapper
+- **Community:** Contributors and testers
 
 ---
 
 <div align="center">
 
-**🔥 IgnisBot - For Nocturne. For Vulkan. 🔥**
+IgnisBot - Automation and Management System
 
-*Automated Administrative and Military Intelligence System*
-
-[![GitHub](https://img.shields.io/badge/GitHub-IgnisBot-blue)](https://github.com/Japa1413/IgnisBot)
-[![Documentation](https://img.shields.io/badge/docs-Complete-success)](docs/CATALOGO_DOCUMENTACAO.md)
-[![Status](https://img.shields.io/badge/status-Production%20Ready-success)]()
-
-[Portuguese Version](README.md)
+[GitHub](https://github.com/Japa1413/IgnisBot) • [Documentation](docs/CATALOGO_DOCUMENTACAO.md) • [Português](README.md)
 
 </div>
-
