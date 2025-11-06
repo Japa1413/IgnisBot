@@ -160,15 +160,19 @@ async def _post_event_with_description(
     host_user: discord.Member
 ):
     """Post event announcement with optional custom description."""
-    # Check if there's an active event
+    # Check if there's an active event BEFORE posting
     from cogs.event_buttons import get_event_panel_cog
     event_panel_cog = get_event_panel_cog(bot)
     
     if event_panel_cog is None:
-        logger.error("Event panel cog not found! Cannot check for active events.")
-    elif event_panel_cog.is_event_active():
+        logger.error("❌ Event panel cog not found! Cannot check for active events.")
+        await interaction.followup.send("❌ Internal error: Event panel system not available.", ephemeral=True)
+        return
+    
+    # CRITICAL: Check for active event BEFORE posting anything
+    if event_panel_cog.is_event_active():
         active_info = event_panel_cog.get_active_event_info()
-        logger.warning(f"Blocked event posting attempt: {event_key} - Active event: {active_info}")
+        logger.warning(f"🚫 BLOCKED event posting attempt: {event_key} - Active event: {active_info}")
         error_msg = (
             "❌ **There is already an active event!**\n\n"
             f"{active_info}\n\n"
@@ -177,8 +181,8 @@ async def _post_event_with_description(
         )
         await interaction.followup.send(error_msg, ephemeral=True)
         return
-    else:
-        logger.debug(f"No active event found, proceeding with event posting: {event_key}")
+    
+    logger.info(f"✅ No active event found, proceeding with event posting: {event_key}")
     
     preset = EVENT_PRESETS.get(event_key)
     if not preset:
@@ -241,7 +245,7 @@ async def _post_event_with_description(
             end_view = EventEndView(bot, end_message.id, host_user)
             await end_message.edit(view=end_view)
         
-        # Mark event as active
+        # Mark event as active IMMEDIATELY after posting
         if event_panel_cog and event_message_id and end_message_id:
             event_panel_cog.set_active_event(
                 event_message_id=event_message_id,
@@ -250,8 +254,15 @@ async def _post_event_with_description(
                 event_title=preset['title']
             )
             logger.info(f"✅ Event marked as active: {preset['title']} (Event ID: {event_message_id}, End ID: {end_message_id})")
+            # Verify it was set correctly
+            if not event_panel_cog.is_event_active():
+                logger.error(f"❌ CRITICAL: Event was set as active but is_event_active() returns False!")
         else:
             logger.error(f"❌ Failed to mark event as active! event_panel_cog={event_panel_cog is not None}, event_message_id={event_message_id}, end_message_id={end_message_id}")
+            if not event_message_id:
+                logger.error("  Reason: event_message_id is None")
+            if not end_message_id:
+                logger.error("  Reason: end_message_id is None")
         
         await interaction.followup.send(f"✅ Posted **{preset['title']}** event.", ephemeral=True)
         logger.info(f"Event '{preset['title']}' posted by {host_user.id}")
