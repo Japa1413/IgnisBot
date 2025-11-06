@@ -127,4 +127,5 @@ async def post_event_announcement(
                 if role:
                     content = role.mention
 
-    await channel.send(content=content, embed=embed)
+    message = await channel.send(content=content, embed=embed)
+    return message  # Return message for tracking active events

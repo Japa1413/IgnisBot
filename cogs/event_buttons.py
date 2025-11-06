@@ -115,6 +115,12 @@ class EventEndView(discord.ui.View):
         """End the event and clean up."""
         await interaction.response.defer(ephemeral=True, thinking=True)
         
+        # Clear active event first
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(self.bot)
+        if event_panel_cog:
+            event_panel_cog.clear_active_event()
+        
         # Delete the End message from event-publishing channel
         end_channel = self.bot.get_channel(EVENT_PANEL_CHANNEL_ID)
         if isinstance(end_channel, discord.TextChannel):
@@ -154,6 +160,21 @@ async def _post_event_with_description(
     host_user: discord.Member
 ):
     """Post event announcement with optional custom description."""
+    # Check if there's an active event
+    from cogs.event_buttons import get_event_panel_cog
+    event_panel_cog = get_event_panel_cog(bot)
+    
+    if event_panel_cog and event_panel_cog.is_event_active():
+        active_info = event_panel_cog.get_active_event_info()
+        error_msg = (
+            "❌ **There is already an active event!**\n\n"
+            f"{active_info}\n\n"
+            "You must end the current event before posting a new one. "
+            "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+        )
+        await interaction.followup.send(error_msg, ephemeral=True)
+        return
+    
     preset = EVENT_PRESETS.get(event_key)
     if not preset:
         await interaction.followup.send("❌ Event preset not found.", ephemeral=True)
@@ -171,7 +192,8 @@ async def _post_event_with_description(
         # Only Patrol event gets the image
         event_image_url = preset.get("image_url") if event_key == "patrol" else None
         
-        await post_event_announcement(
+        # Post event announcement and get message ID
+        announcement_message = await post_event_announcement(
             bot,
             channel_id=EVENT_ANNOUNCEMENT_CHANNEL_ID,
             title=preset["title"],
@@ -188,8 +210,12 @@ async def _post_event_with_description(
             author_icon=None,  # No author icon (no "Posted by" section)
         )
         
+        # Get the message ID from the announcement
+        event_message_id = announcement_message.id if announcement_message else None
+        
         # Post End control message in event-publishing channel
         end_channel = bot.get_channel(EVENT_PANEL_CHANNEL_ID)
+        end_message_id = None
         if isinstance(end_channel, discord.TextChannel):
             end_embed = discord.Embed(
                 title="Event End",
@@ -204,10 +230,20 @@ async def _post_event_with_description(
             
             # First send message without view to get message ID
             end_message = await end_channel.send(embed=end_embed)
+            end_message_id = end_message.id
             
             # Now create view with actual message ID
             end_view = EventEndView(bot, end_message.id, host_user)
             await end_message.edit(view=end_view)
+        
+        # Mark event as active
+        if event_panel_cog and event_message_id and end_message_id:
+            event_panel_cog.set_active_event(
+                event_message_id=event_message_id,
+                end_message_id=end_message_id,
+                host_user=host_user,
+                event_title=preset['title']
+            )
         
         await interaction.followup.send(f"✅ Posted **{preset['title']}** event.", ephemeral=True)
         logger.info(f"Event '{preset['title']}' posted by {host_user.id}")
@@ -358,6 +394,36 @@ class SalamandersEventPanel(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.panel_message_id: int | None = None
+        # Track active event to prevent multiple events at once
+        self.active_event: dict | None = None  # {event_message_id, end_message_id, host_user, event_title}
+    
+    def is_event_active(self) -> bool:
+        """Check if there is currently an active event."""
+        return self.active_event is not None
+    
+    def set_active_event(self, event_message_id: int, end_message_id: int, host_user: discord.Member, event_title: str):
+        """Mark an event as active."""
+        self.active_event = {
+            "event_message_id": event_message_id,
+            "end_message_id": end_message_id,
+            "host_user": host_user,
+            "event_title": event_title
+        }
+        logger.info(f"Active event set: {event_title} by {host_user.id}")
+    
+    def clear_active_event(self):
+        """Clear the active event."""
+        if self.active_event:
+            logger.info(f"Active event cleared: {self.active_event.get('event_title', 'Unknown')}")
+        self.active_event = None
+    
+    def get_active_event_info(self) -> str | None:
+        """Get information about the active event for error messages."""
+        if not self.active_event:
+            return None
+        host = self.active_event["host_user"]
+        title = self.active_event["event_title"]
+        return f"**{title}** hosted by {host.mention}"
     
     async def _create_panel_embed(self) -> discord.Embed:
         """Create the main event hosting panel embed."""
