@@ -4,6 +4,7 @@ Salamanders Event Panel - Interactive event hosting system with buttons.
 
 from __future__ import annotations
 
+import asyncio
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -389,22 +390,28 @@ class SalamandersEventPanel(commands.Cog):
             return
         
         try:
-            # Delete ALL messages in the channel
+            # Delete ALL messages in the channel using purge (more efficient)
+            # First, try to purge all messages (bulk delete is faster)
             deleted_count = 0
-            async for message in channel.history(limit=None):
-                try:
-                    await message.delete()
-                    deleted_count += 1
-                except discord.errors.NotFound:
-                    # Message already deleted
-                    pass
-                except discord.errors.Forbidden:
-                    logger.warning(f"No permission to delete message {message.id}")
-                except Exception as e:
-                    logger.warning(f"Error deleting message {message.id}: {e}")
+            
+            # Use purge with check=None to delete all messages (including bot's own)
+            # Purge has a limit of 100 messages per call, so we need to loop
+            while True:
+                purged = await channel.purge(limit=100, check=None)
+                deleted_count += len(purged)
+                
+                if len(purged) < 100:
+                    # No more messages to delete
+                    break
+                
+                # Small delay to avoid rate limiting
+                await asyncio.sleep(0.5)
             
             if deleted_count > 0:
                 logger.info(f"Deleted {deleted_count} messages from event panel channel")
+            
+            # Small delay before posting new message
+            await asyncio.sleep(1)
             
             # Post new panel
             embed = await self._create_panel_embed()
@@ -414,6 +421,9 @@ class SalamandersEventPanel(commands.Cog):
             
             logger.info(f"✅ Event panel posted in channel {EVENT_PANEL_CHANNEL_ID} (message ID: {message.id})")
         
+        except discord.errors.Forbidden:
+            logger.error(f"❌ No permission to manage messages in channel {EVENT_PANEL_CHANNEL_ID}")
+            logger.error("   Bot needs 'Manage Messages' permission in the event panel channel")
         except Exception as e:
             logger.error(f"Error posting event panel: {e}", exc_info=True)
     
