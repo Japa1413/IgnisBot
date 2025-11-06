@@ -29,11 +29,12 @@ from utils.logger import get_logger
 logger = get_logger(__name__)
 
 # Vox-link channels that are allowed for logging
+# Note: Using exact Unicode characters (Roman numerals) as they appear in Discord
 VOX_LINK_CHANNELS = [
-    "Vox-link I",
-    "Vox-link II",
-    "Vox-link III",
-    "Vox-link IV",
+    "Vox-link Ⅰ",
+    "Vox-link ⅠⅠ",
+    "Vox-link ⅠⅠⅠ",
+    "Vox-link Ⅳ",
 ]
 
 
@@ -48,25 +49,19 @@ class VCLogCog(commands.Cog):
         """
         Check if channel is a valid Vox-link channel.
         
+        Uses exact Unicode character matching for Roman numerals.
+        
         Args:
             channel: Voice or Stage channel
         
         Returns:
-            True if channel name matches Vox-link pattern
+            True if channel name matches exactly one of the Vox-link channels
         """
         if not channel:
             return False
         
-        # Check exact match
-        if channel.name in VOX_LINK_CHANNELS:
-            return True
-        
-        # Check pattern match (case-insensitive, handles variations)
-        pattern = r'^vox-link\s+[ivx]+$'
-        if re.match(pattern, channel.name, re.IGNORECASE):
-            return True
-        
-        return False
+        # Check exact match (case-sensitive for Unicode characters)
+        return channel.name in VOX_LINK_CHANNELS
     
     def _find_vox_link_channels(self, guild: discord.Guild) -> List[discord.VoiceChannel | discord.StageChannel]:
         """
@@ -97,10 +92,9 @@ class VCLogCog(commands.Cog):
         description="Add points to all non-bot users in a Vox-link voice channel."
     )
     @app_commands.describe(
+        vc_name="Vox-link channel (required)",
         amount="How many points to add to each user",
-        event="Event or reason for logging",
-        evidence="Evidence (image/screenshot/file) for the summary (optional)",
-        vc_name="Vox-link channel (optional, defaults to your current VC)"
+        event_type="Event type or reason for logging"
     )
     @app_commands.choices(
         vc_name=[
@@ -111,19 +105,18 @@ class VCLogCog(commands.Cog):
     async def vc_log(
         self,
         interaction: discord.Interaction,
+        vc_name: app_commands.Choice[str],
         amount: app_commands.Range[int, 1, 100_000],
-        event: str,
-        evidence: Optional[discord.Attachment] = None,
-        vc_name: Optional[app_commands.Choice[str]] = None,
+        event_type: str,
     ):
         """
         Log points for all users in a Vox-link channel.
         
         Only Vox-link channels are allowed:
-        - Vox-link I
-        - Vox-link II
-        - Vox-link III
-        - Vox-link IV
+        - Vox-link Ⅰ
+        - Vox-link ⅠⅠ
+        - Vox-link ⅠⅠⅠ
+        - Vox-link Ⅳ
         """
         await interaction.response.defer(thinking=True, ephemeral=False)
         
@@ -131,36 +124,22 @@ class VCLogCog(commands.Cog):
             await interaction.followup.send("❌ This command can only be used in a server.")
             return
         
-        # 1) Resolve the voice channel
-        channel: Optional[discord.VoiceChannel | discord.StageChannel] = None
+        # 1) Resolve the voice channel (vc_name is now required)
+        channel_name = vc_name.value
+        channel = discord.utils.get(
+            interaction.guild.voice_channels, 
+            name=channel_name
+        ) or discord.utils.get(
+            interaction.guild.stage_channels,
+            name=channel_name
+        )
         
-        if vc_name is not None:
-            # Use specified channel
-            channel_name = vc_name.value
-            channel = discord.utils.get(
-                interaction.guild.voice_channels, 
-                name=channel_name
-            ) or discord.utils.get(
-                interaction.guild.stage_channels,
-                name=channel_name
+        if channel is None:
+            await interaction.followup.send(
+                f"❌ Vox-link channel '{channel_name}' not found.",
+                ephemeral=True
             )
-            
-            if channel is None:
-                await interaction.followup.send(
-                    f"❌ Vox-link channel '{channel_name}' not found.",
-                    ephemeral=True
-                )
-                return
-        else:
-            # Use user's current VC
-            if not interaction.user.voice or not interaction.user.voice.channel:
-                await interaction.followup.send(
-                    "❌ You are not in a voice channel.\n"
-                    "Please join a Vox-link channel or specify one using the `vc_name` parameter.",
-                    ephemeral=True
-                )
-                return
-            channel = interaction.user.voice.channel
+            return
         
         # 2) Validate that it's a Vox-link channel
         if not self._is_vox_link_channel(channel):
@@ -201,7 +180,7 @@ class VCLogCog(commands.Cog):
                 transaction = await points_service.add_points(
                     user_id=member.id,
                     amount=amount,
-                    reason=f"VC Log: {event}",
+                    reason=f"VC Log: {event_type}",
                     performed_by=interaction.user.id,
                     check_consent=True  # Validate consent (LGPD Art. 7º, I)
                 )
@@ -235,7 +214,7 @@ class VCLogCog(commands.Cog):
                     value=f"{before_points} → {after_points}",
                     inline=False
                 )
-                embed.add_field(name="**Event:**", value=event or "—", inline=False)
+                embed.add_field(name="**Event Type:**", value=event_type or "—", inline=False)
                 embed.timestamp = discord.utils.utcnow()
                 footer_icon = getattr(interaction.user.display_avatar, "url", None)
                 embed.set_footer(
@@ -301,19 +280,13 @@ class VCLogCog(commands.Cog):
                 color=discord.Color.dark_green()
             )
             summary.add_field(name="**Host:**", value=interaction.user.mention, inline=False)
-            summary.add_field(name="**Event:**", value=event, inline=False)
+            summary.add_field(name="**Event Type:**", value=event_type, inline=False)
             summary.add_field(name="**Channel:**", value=channel.mention, inline=False)
             summary.add_field(
                 name="**Attendees:**",
                 value=", ".join(attendees) or "None",
                 inline=False
             )
-            
-            if evidence:
-                if evidence.content_type and str(evidence.content_type).startswith("image/"):
-                    summary.set_image(url=evidence.url)
-                else:
-                    summary.add_field(name="**Evidence:**", value=evidence.url, inline=False)
             
             summary.timestamp = discord.utils.utcnow()
             footer_icon = getattr(interaction.user.display_avatar, "url", None)
@@ -339,12 +312,12 @@ class VCLogCog(commands.Cog):
                 action_type="CREATE",
                 data_type="vc_log_batch",
                 performed_by=interaction.user.id,
-                purpose=f"VC log event: {event}",
+                purpose=f"VC log event: {event_type}",
                 details={
                     "channel": channel.name,
                     "channel_id": channel.id,
                     "amount": amount,
-                    "event": event,
+                    "event_type": event_type,
                     "attendees_count": len(attendees),
                     "attendees": [int(m.id) for m in members]
                 }

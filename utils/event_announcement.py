@@ -1,8 +1,14 @@
-# utils/event_announcement.py
+"""
+Event Announcement - Post formatted event announcements with Salamanders theme.
+"""
+
 from __future__ import annotations
 
 import discord
 from typing import Optional
+
+# Role ID for Salamanders event pings
+SALAMANDERS_ROLE_ID = 1376831480931815424
 
 
 async def post_event_announcement(
@@ -24,6 +30,8 @@ async def post_event_announcement(
 ) -> None:
     """
     Post a formatted event announcement embed into a specific channel.
+    
+    Styled for Salamanders Chapter of Warhammer 40,000.
 
     Parameters
     ----------
@@ -42,9 +50,10 @@ async def post_event_announcement(
     link : Optional[str]
         Optional URL with more info.
     color : int
-        Embed color (default Discord dark-ish).
+        Embed color (default Salamanders green/orange).
     ping_role_id : Optional[int]
         If provided, will @mention this role above the embed.
+        Defaults to SALAMANDERS_ROLE_ID if None.
     image_url : Optional[str]
         Optional image to display in the embed (banner).
     footer_text : Optional[str]
@@ -61,7 +70,6 @@ async def post_event_announcement(
     RuntimeError
         If channel is not found or not a text-capable channel.
     """
-
     channel = bot.get_channel(channel_id)
     if channel is None:
         raise RuntimeError(f"Channel {channel_id} not found or bot has no access.")
@@ -81,7 +89,7 @@ async def post_event_announcement(
 
     # Link (optional)
     if link:
-        embed.add_field(name="🔗 More Info", value=link, inline=False)
+        embed.add_field(name="🔗 Link", value=link, inline=False)
 
     # Image (optional)
     if image_url:
@@ -91,11 +99,13 @@ async def post_event_announcement(
     if footer_text:
         embed.set_footer(text=footer_text, icon_url=footer_icon or discord.Embed.Empty)
 
-    # Optional role ping
+    # Optional role ping (default to Salamanders role if not specified)
     content = None
-    if ping_role_id:
+    role_id_to_use = ping_role_id if ping_role_id is not None else SALAMANDERS_ROLE_ID
+    
+    if role_id_to_use:
         if isinstance(channel, (discord.TextChannel, discord.Thread)):
-            role = channel.guild.get_role(ping_role_id)
+            role = channel.guild.get_role(role_id_to_use)
             if role:
                 content = role.mention
 

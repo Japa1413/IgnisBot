@@ -1,96 +1,82 @@
-# utils/event_presets.py
+"""
+Event Presets - Salamanders-themed event configurations.
+"""
 
 # Salamanders-flavored presets. Adjust times/links/role IDs freely.
 EVENT_PRESETS = {
-    "rite_of_flame": {
-        "title": "Rite of Flame",
-        "description": (
-            "Initiatory rite to temper spirit and steel. "
-            "Stand firm in the fire and prove your resolve."
-        ),
-        "when": "Today, 20:00 (server time)",
-        "location": "Forge-Temple VC + In-Game",
-        "link": None,
+    "patrol": {
+        "title": "++ PATROL ++",
+        "description": "Standard patrol operations to maintain vigilance and security.",
+        "when": "Now",
+        "location": "Averium Invicta",
+        "link": "https://www.roblox.com/games/99813489644549/Averium-Invicta-The-Grave-World",
         "color": 0x2ECC71,  # Salamanders green
-        "ping_role_id": None,
-        "image_url": "https://i.imgur.com/4QxE7bI.png",  # replace with your art/banner
+        "ping_role_id": 1435800430516113511,  # Patrol role
+        "image_url": "https://i.pinimg.com/originals/1d/a0/54/1da054566318e2d46117c8b3e3961877.png",
     },
-    "forge_drill": {
-        "title": "Forge Drill",
+    "combat_training": {
+        "title": "⚔️ Combat Training",
         "description": (
-            "Formation practice and live drills to refine discipline. "
+            "Intensive combat drills to hone your skills and unit coordination. "
             "Bring your best; the forge masters are watching."
         ),
-        "when": "Tomorrow, 19:30",
-        "location": "Drill Yard",
+        "when": "TBD",
+        "location": "Training Grounds",
         "link": None,
         "color": 0x27AE60,
         "ping_role_id": None,
-        "image_url": "https://i.imgur.com/4QxE7bI.png",
+        "image_url": "https://cdna.artstation.com/p/assets/images/images/036/435/864/large/jacob-loren-salamander-web.jpg?1617683294",
     },
-    "promethean_training": {
-        "title": "Promethean Training",
+    "basic_training": {
+        "title": "🛠️ Basic Training",
         "description": (
-            "Foundational maneuvers, unit cohesion, and Promethean creed. "
-            "Perfect for initiates and veterans revisiting fundamentals."
+            "Foundational training for new recruits and veterans revisiting fundamentals. "
+            "Perfect for initiates and those seeking to strengthen their core skills."
         ),
-        "when": "Saturday, 18:00",
-        "location": "Nocturne Quadrangle",
+        "when": "TBD",
+        "location": "Training Grounds",
         "link": None,
         "color": 0x1ABC9C,
         "ping_role_id": None,
-        "image_url": "https://i.imgur.com/4QxE7bI.png",
+        "image_url": "https://cdna.artstation.com/p/assets/images/images/036/435/864/large/jacob-loren-salamander-web.jpg?1617683294",
     },
     "internal_raid": {
-        "title": "Internal Practice Raid",
+        "title": "⚔️ Internal Practice Raid",
         "description": (
             "Closed-door raid for squad coordination and target calling. "
             "Sharpen your strike in the heat of controlled battle."
         ),
-        "when": "Friday, 21:00",
+        "when": "TBD",
         "location": "Operations Channel",
         "link": None,
         "color": 0xE74C3C,  # red row
         "ping_role_id": None,
-        "image_url": "https://i.imgur.com/4QxE7bI.png",
+        "image_url": "https://cdna.artstation.com/p/assets/images/images/036/435/864/large/jacob-loren-salamander-web.jpg?1617683294",
     },
     "practice_raid": {
-        "title": "Practice Raid",
+        "title": "⚔️ Practice Raid",
         "description": (
             "Open practice raid. New brothers welcome—learn by the flame, "
-            "advance by the anvil."
+            "advance by the anvil. Together we stand; divided we fall."
         ),
-        "when": "Sunday, 20:00",
+        "when": "TBD",
         "location": "Operations Channel",
         "link": None,
         "color": 0xC0392B,
         "ping_role_id": None,
-        "image_url": "https://i.imgur.com/4QxE7bI.png",
+        "image_url": "https://cdna.artstation.com/p/assets/images/images/036/435/864/large/jacob-loren-salamander-web.jpg?1617683294",
     },
-    "forge_muster": {
-        "title": "Forge Muster",
+    "rally": {
+        "title": "🔥 Rally",
         "description": (
-            "Rapid assembly and briefing. Be present, be ready—Vulkan’s sons do not falter."
+            "Rapid assembly and briefing. Be present, be ready—Vulkan's sons do not falter. "
+            "The call to arms has been sounded; answer with honor."
         ),
-        "when": "Soon™",
+        "when": "TBD",
         "location": "Briefing Hall",
         "link": None,
         "color": 0xA93226,
         "ping_role_id": None,
-        "image_url": "https://i.imgur.com/4QxE7bI.png",
+        "image_url": "https://cdna.artstation.com/p/assets/images/images/036/435/864/large/jacob-loren-salamander-web.jpg?1617683294",
     },
-    "hearthfire_night": {
-        "title": "Hearthfire Night",
-        "description": (
-            "Community game night—stories, laughter, and friendly challenges. "
-            "Lay down the hammer and rest by the fire."
-        ),
-        "when": "Saturday, 21:00",
-        "location": "Hearthfire VC",
-        "link": None,
-        "color": 0x95A5A6,  # grey row
-        "ping_role_id": None,
-        "image_url": "https://i.imgur.com/4QxE7bI.png",
-    },
-    # "custom" will be handled in the UI and can call your util with user-provided fields later.
 }

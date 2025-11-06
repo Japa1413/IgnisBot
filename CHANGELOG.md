@@ -1,10 +1,118 @@
 # 📝 CHANGELOG - IGNISBOT
 
-Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
+All notable changes to this project will be documented in this file.
 
 ---
 
 ## [Unreleased]
+
+### 🎮 Event Hosting System (2025-11-06)
+
+#### Added
+- **Interactive Event Panel** - Salamanders-themed event hosting system
+  - Persistent event panel with 7 buttons (Patrol, Combat Training, Basic Training, Internal Practice Raid, Practice Raid, Rally, Custom)
+  - Auto-posting on bot startup with automatic cleanup
+  - Warhammer 40k Salamanders aesthetic
+- **Event Confirmation Workflow** - Two-step confirmation process
+  - "Confirm" button for quick event posting
+  - "Confirm with Description" button with modal for custom descriptions
+  - Ephemeral confirmation messages
+- **Event Lifecycle Management**
+  - "Event End" message with red End button in event-publishing channel
+  - Automatic event conclusion notifications
+  - Event cleanup and conclusion embeds
+- **Event Presets** - Pre-configured event types
+  - Patrol event with Roblox game link and image
+  - Role pinging system (customizable per event)
+  - Customizable descriptions, locations, and times
+
+#### Changed
+- Event announcement function updated to support custom descriptions
+- Event panel embed updated with new Salamanders description
+
+#### Files Added
+- `cogs/event_buttons.py` - Complete event hosting system
+- `utils/event_announcement.py` - Event posting utilities
+- `utils/event_presets.py` - Event configuration presets
+
+---
+
+### 📊 Activity Monitoring System (2025-11-06)
+
+#### Added
+- **Member Activity Logging** - Real-time activity monitoring
+  - Voice channel join/leave tracking with duration
+  - Member move between channels detection
+  - Member join/leave server with full profile embeds
+  - Discord and Roblox profile integration
+- **Activity Log Channel** - Dedicated logging channel
+  - Automatic embeds for all voice channel activities
+  - Color-coded events (green=join, red=leave, purple=move)
+  - Member profile embeds with Discord and Roblox information
+  - Automatic timestamp formatting (Discord's native timestamps)
+
+#### Changed
+- Removed old voice logs handler from `ignis_main.py`
+- Activity logs now use embeds instead of plain text messages
+- All voice channels monitored (no restrictions)
+
+#### Files Added
+- `cogs/member_activity_log.py` - Complete activity monitoring system
+
+---
+
+### 🔗 Bloxlink & Roblox Integration (2025-11-05)
+
+#### Added
+- **Bloxlink Service** - Complete Roblox user verification
+  - Real username extraction (not display name)
+  - Avatar URL fetching
+  - Verification status tracking
+  - Discord-to-Roblox ID mapping
+  - Two-strategy username lookup (direct + search)
+- **Induction Command** - `/induction <roblox_username>`
+  - Accepts Roblox username directly (no Discord mention required)
+  - Fetches Roblox data via Bloxlink API
+  - Personalized embed with Roblox avatar and username
+  - Moderator/owner only, restricted channel
+- **Role Synchronization** - Automatic rank updates
+  - Detects Discord role changes (Bloxlink `/update` command)
+  - Automatically updates database rank
+  - Maps Discord roles to system ranks
+  - Complete audit logging
+
+#### Changed
+- Induction command now accepts Roblox username instead of Discord member
+- All bot messages translated to English
+- Improved error handling for Roblox API calls
+
+#### Files Added
+- `services/bloxlink_service.py` - Bloxlink API integration
+- `events/role_sync_handler.py` - Automatic role synchronization
+
+---
+
+### 🎮 Enhanced VC Log System (2025-11-05)
+
+#### Changed
+- **VC Log Command** - Major improvements
+  - `vc_name` parameter now required and appears first
+  - `event` renamed to `event_type`
+  - Removed `evidence` parameter
+  - Restricted to Vox-link channels only (with Unicode character matching)
+  - All points operations now SQL-only (Google Sheets removed)
+- **Channel Validation** - Enhanced validation
+  - Exact Unicode character matching for Vox-link channels
+  - Supports: "Vox-link Ⅰ", "Vox-link ⅠⅠ", "Vox-link ⅠⅠⅠ", "Vox-link Ⅳ"
+  - Clear error messages with allowed channels
+
+#### Removed
+- Google Sheets integration completely removed
+- All `gspread_asyncio` dependencies removed
+
+---
+
+## [Previous Releases]
 
 ### ✅ Fase 1: Sistema de Gamificação Disruptiva (2025-10-31)
 

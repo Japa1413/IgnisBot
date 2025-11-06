@@ -6,9 +6,8 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-from utils.config import TOKEN, GUILD_ID, VC_CHANNEL_ID
+from utils.config import TOKEN, GUILD_ID
 from utils.database import initialize_db, ensure_user_exists
-from utils.voice_logs import handle_voice_state_update
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -67,9 +66,17 @@ class IgnisBot(commands.Bot):
         # 5) Role Sync Handler - Automatic rank sync from Discord roles (Bloxlink /update)
         from events.role_sync_handler import setup as setup_role_sync
         await setup_role_sync(self)
-
-        # 6) (Optional) Load extensions with setup(bot)
-        # await self.load_extension("cogs.event_buttons")
+        
+        # 6) Member Activity Log - Monitor voice channels and member join/leave
+        from cogs.member_activity_log import setup as setup_member_activity_log
+        await setup_member_activity_log(self)
+        
+        # 7) Salamanders Event Panel - Auto-post event hosting panel
+        from cogs.event_buttons import setup as setup_event_panel
+        await setup_event_panel(self)
+        
+        # 8) (Optional) Load other extensions
+        # await self.load_extension("cogs.other")
 
 
 bot = IgnisBot()
@@ -82,6 +89,14 @@ async def on_ready():
         activity=discord.Game(name="Loyalty is its own reward.")
     )
     logger.info(f"🔥 Logged in as {bot.user} (id={bot.user.id})")
+    
+    if not hasattr(bot, 'ready_count'):
+        bot.ready_count = 0
+    bot.ready_count += 1
+    
+    if bot.ready_count > 1:
+        logger.warning("⚠️ Bot reconnected (ready_count > 1). Skipping initialization.")
+        return
     
     # Sync slash commands after bot is ready
     await asyncio.sleep(1)  # Small delay to ensure everything is loaded
@@ -120,6 +135,19 @@ async def on_ready():
             logger.warning("   Check: https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=0&scope=bot%20applications.commands")
     except Exception as e:
         logger.error(f"❌ Unexpected sync error: {e}", exc_info=True)
+    
+    # Auto-post/update event panel after a short delay to ensure everything is loaded
+    async def post_event_panel_delayed():
+        await asyncio.sleep(3)  # Wait 3 seconds for all cogs to be ready
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(bot)
+        if event_panel_cog:
+            await event_panel_cog.post_or_update_panel()
+        else:
+            logger.warning("Event panel cog not found, skipping auto-post")
+    
+    # Schedule panel posting
+    bot.loop.create_task(post_event_panel_delayed())
 
 
 # Handler de erros para app_commands (slash commands)
@@ -192,10 +220,11 @@ async def _ensure_user_for_slash(interaction: discord.Interaction):
         logger.warning(f"[ensure_user_exists] interaction error: {e}")
 
 
-@bot.event
-async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-    # Voice logs handler (if applicable)
-    await handle_voice_state_update(member, before, after, VC_CHANNEL_ID)
+# Voice state updates are now handled by MemberActivityLogCog
+# Old handler removed to avoid conflicts
+# @bot.event
+# async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+#     await handle_voice_state_update(member, before, after, VC_CHANNEL_ID)
 
 
 @bot.hybrid_command()
