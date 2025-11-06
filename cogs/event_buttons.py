@@ -359,8 +359,11 @@ class SalamandersEventView(discord.ui.View):
         from cogs.event_buttons import get_event_panel_cog
         event_panel_cog = get_event_panel_cog(self.bot)
         
-        if event_panel_cog and event_panel_cog.is_event_active():
+        if event_panel_cog is None:
+            logger.error("Event panel cog not found! Cannot check for active events.")
+        elif event_panel_cog.is_event_active():
             active_info = event_panel_cog.get_active_event_info()
+            logger.warning(f"Blocked event posting attempt: {key} - Active event: {active_info}")
             error_msg = (
                 "❌ **There is already an active event!**\n\n"
                 f"{active_info}\n\n"
@@ -369,6 +372,8 @@ class SalamandersEventView(discord.ui.View):
             )
             await interaction.followup.send(error_msg, ephemeral=True)
             return
+        else:
+            logger.debug(f"No active event found, proceeding with event posting: {key}")
         
         preset = EVENT_PRESETS.get(key)
         if not preset:
@@ -396,7 +401,12 @@ class SalamandersEventPanel(commands.Cog):
     
     def is_event_active(self) -> bool:
         """Check if there is currently an active event."""
-        return self.active_event is not None
+        is_active = self.active_event is not None
+        if is_active:
+            logger.debug(f"Event active check: TRUE - {self.active_event.get('event_title', 'Unknown')}")
+        else:
+            logger.debug("Event active check: FALSE - No active event")
+        return is_active
     
     def set_active_event(self, event_message_id: int, end_message_id: int, host_user: discord.Member, event_title: str):
         """Mark an event as active."""
