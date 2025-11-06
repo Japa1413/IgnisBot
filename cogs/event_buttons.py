@@ -181,8 +181,8 @@ async def _post_event_with_description(
             image_url=None,  # No image in embed
             footer_text="For Nocturne. For Vulkan.",
             footer_icon=None,  # Will use specified icon automatically
-            author_name=None,  # No "Posted by" - removed
-            author_icon=None,  # No author icon
+            author_name=host_user.mention,  # Host field in description (not "Posted by")
+            author_icon=None,  # No author icon (no "Posted by" section)
         )
         
         # Post End control message in event-publishing channel
