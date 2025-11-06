@@ -404,12 +404,13 @@ class SalamandersEventPanel(commands.Cog):
             deleted_count = 0
             iteration = 0
             
-            # Use purge with check=None to delete all messages (including bot's own)
+            # Use purge to delete all messages (including bot's own)
             # Purge has a limit of 100 messages per call, so we need to loop
+            # Pass a lambda that always returns True to delete all messages
             logger.info(f"Starting channel cleanup for {EVENT_PANEL_CHANNEL_ID}...")
             while True:
                 iteration += 1
-                purged = await channel.purge(limit=100, check=None)
+                purged = await channel.purge(limit=100, check=lambda m: True)
                 deleted_count += len(purged)
                 
                 if len(purged) > 0:
