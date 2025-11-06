@@ -100,8 +100,9 @@ async def post_event_announcement(
         color=color
     )
 
-    # No image in embed (removed as requested)
-    # Image removed: if image_url: embed.set_image(url=image_url)
+    # Add image if provided (for Patrol event specifically)
+    if image_url:
+        embed.set_image(url=image_url)
     
     # Footer with specified icon
     footer_icon_url = "https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"

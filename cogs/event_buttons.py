@@ -168,6 +168,9 @@ async def _post_event_with_description(
     
     try:
         # Post event announcement
+        # Only Patrol event gets the image
+        event_image_url = preset.get("image_url") if event_key == "patrol" else None
+        
         await post_event_announcement(
             bot,
             channel_id=EVENT_ANNOUNCEMENT_CHANNEL_ID,
@@ -178,7 +181,7 @@ async def _post_event_with_description(
             link=preset.get("link"),  # Will use default if None
             color=preset.get("color", 0x2B2D31),
             ping_role_id=None,  # Will use Salamanders role automatically
-            image_url=None,  # No image in embed
+            image_url=event_image_url,  # Only Patrol event has image
             footer_text="For Nocturne. For Vulkan.",
             footer_icon=None,  # Will use specified icon automatically
             author_name=host_user.mention,  # Host field in description (not "Posted by")
