@@ -618,8 +618,8 @@ Contribuições são bem-vindas! Por favor, siga estas diretrizes:
 
 ## 📊 Estatísticas
 
-- **Total de Comandos:** 18+ comandos slash
-- **Arquivos de Documentação:** 110+ documentos organizados
+- **Total de Comandos:** 30+ comandos slash
+- **Arquivos de Documentação:** 111+ documentos organizados
 - **Cobertura de Testes:** ~60-70% (melhorando)
 - **Qualidade do Código:** Pronto para produção
 - **Performance:** Otimizado com cache e pooling
@@ -631,7 +631,7 @@ Contribuições são bem-vindas! Por favor, siga estas diretrizes:
 - **Discord.py:** Excelente wrapper da API Discord
 - **Bloxlink:** Serviço de verificação Roblox
 - **Warhammer 40,000:** Inspiração para o tema Salamanders
-- **Comunidade:** Comunidade Age of Warfare por feedback e testes
+- **Comunidade:** Todos os contribuidores e testadores do projeto
 
 ---
 
