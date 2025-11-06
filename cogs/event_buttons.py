@@ -390,15 +390,30 @@ class SalamandersEventPanel(commands.Cog):
             return
         
         try:
+            # Check bot permissions
+            bot_member = channel.guild.get_member(self.bot.user.id)
+            if bot_member:
+                perms = channel.permissions_for(bot_member)
+                if not perms.manage_messages:
+                    logger.error(f"❌ Bot does not have 'Manage Messages' permission in channel {EVENT_PANEL_CHANNEL_ID}")
+                    logger.error("   Please grant the bot 'Manage Messages' permission in the event panel channel")
+                    return
+            
             # Delete ALL messages in the channel using purge (more efficient)
             # First, try to purge all messages (bulk delete is faster)
             deleted_count = 0
+            iteration = 0
             
             # Use purge with check=None to delete all messages (including bot's own)
             # Purge has a limit of 100 messages per call, so we need to loop
+            logger.info(f"Starting channel cleanup for {EVENT_PANEL_CHANNEL_ID}...")
             while True:
+                iteration += 1
                 purged = await channel.purge(limit=100, check=None)
                 deleted_count += len(purged)
+                
+                if len(purged) > 0:
+                    logger.debug(f"Purge iteration {iteration}: deleted {len(purged)} messages")
                 
                 if len(purged) < 100:
                     # No more messages to delete
@@ -408,7 +423,9 @@ class SalamandersEventPanel(commands.Cog):
                 await asyncio.sleep(0.5)
             
             if deleted_count > 0:
-                logger.info(f"Deleted {deleted_count} messages from event panel channel")
+                logger.info(f"✅ Deleted {deleted_count} messages from event panel channel")
+            else:
+                logger.info("Channel was already empty")
             
             # Small delay before posting new message
             await asyncio.sleep(1)
