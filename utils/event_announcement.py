@@ -65,6 +65,11 @@ async def post_event_announcement(
     author_icon : Optional[str]
         Optional author icon URL.
 
+    Returns
+    -------
+    discord.Message
+        The message that was posted.
+    
     Raises
     ------
     RuntimeError

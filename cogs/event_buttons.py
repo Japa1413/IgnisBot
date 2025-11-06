@@ -106,7 +106,7 @@ class EventEndView(discord.ui.View):
         button = discord.ui.Button(
             label="End",
             style=discord.ButtonStyle.danger,
-            custom_id=f"event_end_{event_message_id}" if event_message_id > 0 else "event_end_temp"
+            custom_id=f"event_end_{end_message_id}" if end_message_id > 0 else "event_end_temp"
         )
         button.callback = self.end_event_button
         self.add_item(button)
@@ -125,11 +125,11 @@ class EventEndView(discord.ui.View):
         end_channel = self.bot.get_channel(EVENT_PANEL_CHANNEL_ID)
         if isinstance(end_channel, discord.TextChannel):
             try:
-                end_message = await end_channel.fetch_message(self.event_message_id)
+                end_message = await end_channel.fetch_message(self.end_message_id)
                 await end_message.delete()
-                logger.info(f"Deleted event end message {self.event_message_id}")
+                logger.info(f"Deleted event end message {self.end_message_id}")
             except discord.NotFound:
-                logger.warning(f"Event end message {self.event_message_id} not found")
+                logger.warning(f"Event end message {self.end_message_id} not found")
             except Exception as e:
                 logger.error(f"Error deleting event end message: {e}")
         
@@ -347,45 +347,34 @@ class SalamandersEventView(discord.ui.View):
         """Dispatch event announcement based on preset key."""
         await interaction.response.defer(ephemeral=True, thinking=True)
         
+        # Check if there's an active event
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(self.bot)
+        
+        if event_panel_cog and event_panel_cog.is_event_active():
+            active_info = event_panel_cog.get_active_event_info()
+            error_msg = (
+                "❌ **There is already an active event!**\n\n"
+                f"{active_info}\n\n"
+                "You must end the current event before posting a new one. "
+                "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+            )
+            await interaction.followup.send(error_msg, ephemeral=True)
+            return
+        
         preset = EVENT_PRESETS.get(key)
         if not preset:
             await interaction.followup.send("❌ Event preset not found.", ephemeral=True)
             return
         
-        target = interaction.channel
-        if not isinstance(target, (discord.TextChannel, discord.Thread)):
-            await interaction.followup.send("❌ Invalid channel.", ephemeral=True)
-            return
-        
-        author_icon = interaction.user.display_avatar.url if interaction.user.display_avatar else None
-        
-        try:
-            await post_event_announcement(
-                self.bot,
-                channel_id=target.id,
-                title=preset["title"],
-                description=preset["description"],
-                when=preset["when"],
-                location=preset["location"],
-                link=preset.get("link"),
-                color=preset.get("color", 0x2B2D31),
-                ping_role_id=preset.get("ping_role_id"),
-                image_url=preset.get("image_url"),
-                footer_text="For Nocturne. For Vulkan.",
-                footer_icon=author_icon,
-                author_name=f"Posted by {interaction.user.display_name}",
-                author_icon=author_icon,
-            )
-            
-            await interaction.followup.send(f"✅ Posted **{preset['title']}** here.", ephemeral=True)
-            logger.info(f"Event '{preset['title']}' posted by {interaction.user.id} in channel {target.id}")
-        
-        except Exception as e:
-            logger.error(f"Error posting event announcement: {e}", exc_info=True)
-            await interaction.followup.send(
-                f"❌ Error posting event: {str(e)}",
-                ephemeral=True
-            )
+        # Use _post_event_with_description for all events to ensure consistency
+        await _post_event_with_description(
+            bot=self.bot,
+            interaction=interaction,
+            event_key=key,
+            custom_description=None,
+            host_user=interaction.user
+        )
 
 
 class SalamandersEventPanel(commands.Cog):
