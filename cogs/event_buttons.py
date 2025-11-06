@@ -96,10 +96,10 @@ class PatrolConfirmationView(discord.ui.View):
 class EventEndView(discord.ui.View):
     """View with End button for active events."""
     
-    def __init__(self, bot: commands.Bot, event_message_id: int, host_user: discord.Member):
+    def __init__(self, bot: commands.Bot, end_message_id: int, host_user: discord.Member):
         super().__init__(timeout=None)  # Persistent
         self.bot = bot
-        self.event_message_id = event_message_id
+        self.end_message_id = end_message_id  # ID of the "End" message itself
         self.host_user = host_user
         
         # Create button dynamically with unique custom_id
