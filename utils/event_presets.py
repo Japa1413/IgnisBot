@@ -6,9 +6,9 @@ Event Presets - Salamanders-themed event configurations.
 EVENT_PRESETS = {
     "patrol": {
         "title": "++ PATROL ++",
-        "description": "Standard patrol operations to maintain vigilance and security.",
-        "when": "Now",
-        "location": "Averium Invicta",
+        "description": "",  # Empty by default, can be added via modal
+        "when": "Now",  # Not used in display
+        "location": "Averium Invicta",  # Not used in display
         "link": "https://www.roblox.com/games/99813489644549/Averium-Invicta-The-Grave-World",
         "color": 0x2ECC71,  # Salamanders green
         "ping_role_id": 1435800430516113511,  # Patrol role

@@ -158,11 +158,12 @@ async def _post_event_with_description(
         await interaction.followup.send("❌ Event preset not found.", ephemeral=True)
         return
     
-    # Use custom description if provided, otherwise use preset description
+    # Use custom description if provided, otherwise use preset description (only if not empty)
     if custom_description:
-        final_description = f"**Host:** {host_user.mention}\n**Description:** {custom_description}"
+        final_description = custom_description
     else:
-        final_description = f"**Host:** {host_user.mention}\n**Description:** {preset['description']}"
+        # Only use preset description if it exists and is not empty
+        final_description = preset.get('description', '').strip() if preset.get('description') else None
     
     try:
         # Post event announcement
@@ -170,17 +171,17 @@ async def _post_event_with_description(
             bot,
             channel_id=EVENT_ANNOUNCEMENT_CHANNEL_ID,
             title=preset["title"],
-            description=final_description,
-            when=preset["when"],
-            location=preset["location"],
-            link=preset.get("link"),
+            description=final_description if final_description else "",
+            when="",  # Not used anymore
+            location="",  # Not used anymore
+            link=preset.get("link"),  # Will use default if None
             color=preset.get("color", 0x2B2D31),
             ping_role_id=preset.get("ping_role_id"),
             image_url=preset.get("image_url"),
             footer_text="For Nocturne. For Vulkan.",
-            footer_icon=host_user.display_avatar.url if host_user.display_avatar else None,
-            author_name=f"Posted by {host_user.display_name}",
-            author_icon=host_user.display_avatar.url if host_user.display_avatar else None,
+            footer_icon=None,  # Will use SALAMANDERS_BANNER_URL automatically
+            author_name=host_user.mention,  # Use mention for Host field
+            author_icon=None,  # Not needed
         )
         
         # Post End control message in event-publishing channel
@@ -380,7 +381,7 @@ class SalamandersEventPanel(commands.Cog):
     async def post_or_update_panel(self) -> None:
         """
         Post or update the event panel in the designated channel.
-        Deletes old message and posts new one to ensure freshness.
+        Deletes ALL messages in the channel and posts new panel.
         """
         channel = self.bot.get_channel(EVENT_PANEL_CHANNEL_ID)
         if not isinstance(channel, discord.TextChannel):
@@ -388,28 +389,22 @@ class SalamandersEventPanel(commands.Cog):
             return
         
         try:
-            # Delete old panel message if we have its ID
-            if self.panel_message_id:
+            # Delete ALL messages in the channel
+            deleted_count = 0
+            async for message in channel.history(limit=None):
                 try:
-                    old_message = await channel.fetch_message(self.panel_message_id)
-                    await old_message.delete()
-                    logger.debug(f"Deleted old event panel message {self.panel_message_id}")
-                except discord.NotFound:
-                    logger.debug(f"Old panel message {self.panel_message_id} not found (already deleted)")
+                    await message.delete()
+                    deleted_count += 1
+                except discord.errors.NotFound:
+                    # Message already deleted
+                    pass
+                except discord.errors.Forbidden:
+                    logger.warning(f"No permission to delete message {message.id}")
                 except Exception as e:
-                    logger.warning(f"Error deleting old panel message: {e}")
+                    logger.warning(f"Error deleting message {message.id}: {e}")
             
-            # Also try to find and delete any existing panel messages (by checking recent messages)
-            # This helps if bot restarts and loses the message ID
-            async for message in channel.history(limit=10):
-                if message.author == self.bot.user and message.embeds:
-                    embed = message.embeds[0]
-                    if embed.title and "Event Hosting" in embed.title:
-                        try:
-                            await message.delete()
-                            logger.debug(f"Deleted existing panel message {message.id}")
-                        except Exception as e:
-                            logger.warning(f"Error deleting existing panel message: {e}")
+            if deleted_count > 0:
+                logger.info(f"Deleted {deleted_count} messages from event panel channel")
             
             # Post new panel
             embed = await self._create_panel_embed()

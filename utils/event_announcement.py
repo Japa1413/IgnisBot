@@ -77,27 +77,41 @@ async def post_event_announcement(
     if not hasattr(channel, "send"):
         raise RuntimeError(f"Channel {channel_id} is not a text-capable channel.")
 
-    embed = discord.Embed(title=title, description=description, color=color)
-
-    # Author (optional)
+    # Build description with Host, Description (if provided), and Link
+    description_parts = []
+    
+    # Host is always included in the description format
     if author_name:
-        embed.set_author(name=author_name, icon_url=author_icon or discord.Embed.Empty)
-
-    # Core fields
-    embed.add_field(name="📅 When", value=when, inline=False)
-    embed.add_field(name="📍 Location", value=location, inline=False)
-
-    # Link (optional)
-    if link:
-        embed.add_field(name="🔗 Link", value=link, inline=False)
+        description_parts.append(f"**Host:** {author_name}")
+    
+    # Description only if provided and not empty
+    if description and description.strip():
+        description_parts.append(f"**Description:** {description}")
+    
+    # Link is always included (use default if not provided)
+    default_link = "https://www.roblox.com/games/99813489644549/Averium-Invicta-The-Grave-World"
+    final_link = link if link else default_link
+    description_parts.append(f"**Link:** {final_link}")
+    
+    embed = discord.Embed(
+        title=title,
+        description="\n".join(description_parts),
+        color=color
+    )
 
     # Image (optional)
     if image_url:
         embed.set_image(url=image_url)
-
-    # Footer (optional)
+    
+    # Footer with icon from Event Hosting banner (same as Event Hosting panel)
+    # Default banner URL if footer_icon not provided
+    default_footer_icon = "https://cdna.artstation.com/p/assets/images/images/036/435/864/large/jacob-loren-salamander-web.jpg?1617683294"
+    footer_icon_url = footer_icon if footer_icon else default_footer_icon
+    
     if footer_text:
-        embed.set_footer(text=footer_text, icon_url=footer_icon or discord.Embed.Empty)
+        embed.set_footer(text=footer_text, icon_url=footer_icon_url)
+    else:
+        embed.set_footer(icon_url=footer_icon_url)
 
     # Optional role ping (default to Salamanders role if not specified)
     content = None
