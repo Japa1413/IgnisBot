@@ -78,9 +78,10 @@ async def post_event_announcement(
         raise RuntimeError(f"Channel {channel_id} is not a text-capable channel.")
 
     # Build description with Host, Description (if provided), and Link
+    # No emojis, clean format
     description_parts = []
     
-    # Host is always included in the description format
+    # Host is always included (using author_name if provided)
     if author_name:
         description_parts.append(f"**Host:** {author_name}")
     
@@ -99,28 +100,30 @@ async def post_event_announcement(
         color=color
     )
 
-    # Image (optional)
-    if image_url:
-        embed.set_image(url=image_url)
+    # No image in embed (removed as requested)
+    # Image removed: if image_url: embed.set_image(url=image_url)
     
-    # Footer with icon from Event Hosting banner (same as Event Hosting panel)
-    # Default banner URL if footer_icon not provided
-    default_footer_icon = "https://cdna.artstation.com/p/assets/images/images/036/435/864/large/jacob-loren-salamander-web.jpg?1617683294"
-    footer_icon_url = footer_icon if footer_icon else default_footer_icon
+    # Footer with specified icon
+    footer_icon_url = "https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
     
     if footer_text:
         embed.set_footer(text=footer_text, icon_url=footer_icon_url)
     else:
         embed.set_footer(icon_url=footer_icon_url)
 
-    # Optional role ping (default to Salamanders role if not specified)
+    # Always ping Salamanders role (ID: 1376831480931815424)
     content = None
-    role_id_to_use = ping_role_id if ping_role_id is not None else SALAMANDERS_ROLE_ID
-    
-    if role_id_to_use:
-        if isinstance(channel, (discord.TextChannel, discord.Thread)):
-            role = channel.guild.get_role(role_id_to_use)
-            if role:
-                content = role.mention
+    if isinstance(channel, (discord.TextChannel, discord.Thread)):
+        salamanders_role_id = 1376831480931815424
+        role = channel.guild.get_role(salamanders_role_id)
+        if role:
+            content = role.mention
+        else:
+            # Fallback to preset role if specified
+            role_id_to_use = ping_role_id if ping_role_id is not None else SALAMANDERS_ROLE_ID
+            if role_id_to_use:
+                role = channel.guild.get_role(role_id_to_use)
+                if role:
+                    content = role.mention
 
     await channel.send(content=content, embed=embed)

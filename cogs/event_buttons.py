@@ -177,12 +177,12 @@ async def _post_event_with_description(
             location="",  # Not used anymore
             link=preset.get("link"),  # Will use default if None
             color=preset.get("color", 0x2B2D31),
-            ping_role_id=preset.get("ping_role_id"),
-            image_url=preset.get("image_url"),
+            ping_role_id=None,  # Will use Salamanders role automatically
+            image_url=None,  # No image in embed
             footer_text="For Nocturne. For Vulkan.",
-            footer_icon=None,  # Will use SALAMANDERS_BANNER_URL automatically
-            author_name=host_user.mention,  # Use mention for Host field
-            author_icon=None,  # Not needed
+            footer_icon=None,  # Will use specified icon automatically
+            author_name=None,  # No "Posted by" - removed
+            author_icon=None,  # No author icon
         )
         
         # Post End control message in event-publishing channel
