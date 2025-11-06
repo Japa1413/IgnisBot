@@ -74,7 +74,7 @@ def categorize_file(filename: str) -> Optional[str]:
 
 
 # Arquivos permitidos na raiz do projeto (não em docs/)
-ROOT_PROJECT_FILES = ["README.md", "CHANGELOG.md", "LICENSE", ".gitignore", "requirements.txt", "requirements-dev.txt", "pytest.ini", "env.example"]
+ROOT_PROJECT_FILES = ["README.md", "README_EN.md", "CHANGELOG.md", "LICENSE", ".gitignore", "requirements.txt", "requirements-dev.txt", "pytest.ini", "env.example"]
 
 def find_orphan_docs(root_dir: Path) -> List[Path]:
     """Encontra documentos que estão fora do lugar"""
