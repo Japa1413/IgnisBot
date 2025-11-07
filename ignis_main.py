@@ -173,6 +173,11 @@ async def on_ready():
     
     # Schedule panel posting
     bot.loop.create_task(post_event_panel_delayed())
+    
+    # Enable cache warming for active users
+    from utils.cache import enable_cache_warming
+    enable_cache_warming()
+    logger.info("✅ Cache warming enabled")
 
 
 # Handler de erros para app_commands (slash commands)

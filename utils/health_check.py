@@ -9,9 +9,7 @@ import asyncio
 from typing import Dict, Any, Optional
 from datetime import datetime
 from utils.logger import get_logger
-from utils.database import get_pool, _POOL
 from utils.cache import get_cache_stats
-import aiomysql
 
 logger = get_logger(__name__)
 
@@ -35,7 +33,11 @@ class HealthCheck:
         error = None
         
         try:
-            if _POOL is None:
+            # Use get_pool() instead of direct _POOL access
+            from utils.database import get_pool
+            pool = get_pool()
+            
+            if pool is None:
                 return {
                     "status": "unhealthy",
                     "error": "Database pool not initialized",
@@ -43,7 +45,7 @@ class HealthCheck:
                 }
             
             # Test connection with a simple query
-            async with _POOL.acquire() as conn:
+            async with pool.acquire() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute("SELECT 1")
                     await cursor.fetchone()
@@ -51,8 +53,8 @@ class HealthCheck:
             latency_ms = (time.perf_counter() - start_time) * 1000
             
             # Get pool stats
-            pool_size = _POOL.size
-            free_connections = _POOL.freesize
+            pool_size = pool.size
+            free_connections = pool.freesize
             
             return {
                 "status": "healthy",
@@ -60,6 +62,14 @@ class HealthCheck:
                 "pool_size": pool_size,
                 "free_connections": free_connections,
                 "pool_utilization": f"{((pool_size - free_connections) / pool_size * 100):.1f}%" if pool_size > 0 else "0%"
+            }
+        except RuntimeError as e:
+            # Pool not initialized
+            latency_ms = (time.perf_counter() - start_time) * 1000
+            return {
+                "status": "unhealthy",
+                "error": "Database pool not initialized. Bot may still be starting up.",
+                "latency_ms": round(latency_ms, 2)
             }
         except Exception as e:
             latency_ms = (time.perf_counter() - start_time) * 1000
