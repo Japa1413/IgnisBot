@@ -1,8 +1,8 @@
 # 📚 CATÁLOGO COMPLETO DE DOCUMENTAÇÃO - IGNISBOT
 
 **Versão:** 3.0  
-**Data:** 05/11/2025  
-**Última atualização automática:** 05/11/2025
+**Data:** 06/11/2025  
+**Última atualização automática:** 06/11/2025
 
 ---
 
@@ -45,6 +45,7 @@ Todos os documentos foram organizados automaticamente conforme padrão definido 
 |-----------|--------|
 | `ANALISE_MIGRACAO_HEXAGONAL.md` | ✅ Organizado |
 | `ANALISE_SEGURANCA.md` | ✅ Organizado |
+| `ANALISE_SISTEMA_EVENTOS.md` | ✅ Organizado |
 | `ARQUITETURA_OTIMIZADA_PERFORMANCE.md` | ✅ Organizado |
 | `ARQUITETURA_SISTEMA.md` | ✅ Organizado |
 | `PROPOSTA_GAMIFICACAO_DISRUPTIVA.md` | ✅ Organizado |
@@ -54,7 +55,7 @@ Todos os documentos foram organizados automaticamente conforme padrão definido 
 | `RESUMO_REVISAO.md` | ✅ Organizado |
 | `REVISAO_ARQUITETURA.md` | ✅ Organizado |
 
-**Total:** 10 documentos
+**Total:** 11 documentos
 
 ---
 
@@ -223,9 +224,9 @@ Todos os documentos foram organizados automaticamente conforme padrão definido 
 
 ## 📊 ESTATÍSTICAS
 
-- **Total de documentos:** 97
+- **Total de documentos:** 98
 - **Categorias:** 9
-- **Última atualização:** 05/11/2025 19:09:04
+- **Última atualização:** 06/11/2025 21:29:48
 
 ---
 
