@@ -11,6 +11,7 @@ class AdminSync(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="sync", description="Force app-commands sync.")
+    @app_commands.guild_only()
     @app_commands.describe(scope="Where to sync: guild | global | clear")
     async def sync(self, interaction: discord.Interaction, scope: str = "guild"):
         if not interaction.user.guild_permissions.administrator:
