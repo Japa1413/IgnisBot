@@ -116,16 +116,10 @@ async def on_ready():
             cmd_list = [f"{c.name} ({type(c).__name__})" for c in all_commands[:10]]
             logger.info(f"   Sample commands: {', '.join(cmd_list)}")
         
-        # FIX: Clear guild commands first to prevent duplicates
-        # This ensures we start with a clean slate
-        try:
-            bot.tree.clear_commands(guild=guild)
-            logger.debug("Cleared existing guild commands to prevent duplicates")
-        except Exception as e:
-            logger.warning(f"Could not clear guild commands: {e}")
-        
-        # Sync ONLY guild commands (not global)
-        # This prevents duplicates from global + guild sync
+        # FIX: Sync ONLY guild commands (not global) to prevent duplicates
+        # IMPORTANT: Do NOT use copy_global_to - it causes duplicates
+        # IMPORTANT: Do NOT clear commands before sync - it removes all commands
+        # The sync will automatically replace existing commands
         try:
             synced = await bot.tree.sync(guild=guild)
             logger.info(f"✅ Synced {len(synced)} commands for guild {GUILD_ID}")
@@ -138,8 +132,12 @@ async def on_ready():
                 if len(unique_names) < len(cmd_names):
                     duplicates = [name for name in cmd_names if cmd_names.count(name) > 1]
                     logger.warning(f"⚠️ Found duplicate commands: {set(duplicates)}")
+                    logger.warning("   If duplicates persist, use /sync clear to force a clean sync")
+                else:
+                    logger.info("✅ No duplicate commands detected")
             else:
                 logger.warning("⚠️ Guild sync returned 0 commands.")
+                logger.warning("   Commands may still be syncing. Wait a few seconds and try again.")
         except discord.HTTPException as http_err:
             logger.error(f"❌ HTTP error during sync: {http_err}")
             logger.error(f"   Status: {http_err.status}, Response: {http_err.text}")
