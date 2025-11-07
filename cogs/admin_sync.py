@@ -22,7 +22,9 @@ class AdminSync(commands.Cog):
 
         try:
             if scope.lower() == "guild":
-                self.bot.tree.copy_global_to(guild=guild_obj)  # opcional
+                # FIX: Clear guild commands first to prevent duplicates
+                tree.clear_commands(guild=guild_obj)
+                # Do NOT use copy_global_to - it causes duplicates
                 cmds = await tree.sync(guild=guild_obj)
                 await interaction.followup.send(f"✅ Synced **{len(cmds)}** commands to guild.", ephemeral=True)
 
@@ -36,17 +38,9 @@ class AdminSync(commands.Cog):
             elif scope.lower() == "clear":
                 # Limpa TODOS os comandos do guild e reaplica
                 tree.clear_commands(guild=guild_obj)
-                await tree.sync(guild=guild_obj)
-
-                # (opcional) limpar globais tbm — cuidado, deleta tudo global
-                # tree.clear_commands(guild=None)
-                # await tree.sync()
-
-                # Recarregar cogs e sincronizar de novo
-                await interaction.followup.send("🧹 Cleared guild commands. Re-syncing…", ephemeral=True)
-                self.bot.tree.copy_global_to(guild=guild_obj)
+                # FIX: Do NOT use copy_global_to - it causes duplicates
                 cmds = await tree.sync(guild=guild_obj)
-                await interaction.followup.send(f"✅ Re-synced **{len(cmds)}** commands to guild.", ephemeral=True)
+                await interaction.followup.send(f"✅ Cleared and re-synced **{len(cmds)}** commands to guild.", ephemeral=True)
 
             else:
                 await interaction.followup.send("Use: `guild`, `global` or `clear`.", ephemeral=True)

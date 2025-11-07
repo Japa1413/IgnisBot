@@ -37,6 +37,9 @@ class IgnisBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
         # Remove default help (we'll keep the hybrid /help)
         self.remove_command("help")
+        
+        # Note: CommandTree is created automatically by commands.Bot
+        # We'll ensure commands are synced only to guild to prevent duplicates
 
     async def setup_hook(self):
         # 1) Database first
@@ -113,49 +116,35 @@ async def on_ready():
             cmd_list = [f"{c.name} ({type(c).__name__})" for c in all_commands[:10]]
             logger.info(f"   Sample commands: {', '.join(cmd_list)}")
         
-        # OPTIMIZATION: Copy global commands to guild before syncing
-        # This ensures guild commands are available even if global sync is used
+        # FIX: Clear guild commands first to prevent duplicates
+        # This ensures we start with a clean slate
         try:
-            bot.tree.copy_global_to(guild=guild)
-            logger.debug("Copied global commands to guild")
+            bot.tree.clear_commands(guild=guild)
+            logger.debug("Cleared existing guild commands to prevent duplicates")
         except Exception as e:
-            logger.warning(f"Could not copy global commands to guild: {e}")
+            logger.warning(f"Could not clear guild commands: {e}")
         
-        # Try to sync guild commands first
+        # Sync ONLY guild commands (not global)
+        # This prevents duplicates from global + guild sync
         try:
             synced = await bot.tree.sync(guild=guild)
             logger.info(f"✅ Synced {len(synced)} commands for guild {GUILD_ID}")
             if synced:
                 cmd_names = [c.name for c in synced]
                 logger.info(f"→ Guild commands synced: {', '.join(cmd_names[:10])}{'...' if len(cmd_names) > 10 else ''}")
+                
+                # Check for duplicates
+                unique_names = set(cmd_names)
+                if len(unique_names) < len(cmd_names):
+                    duplicates = [name for name in cmd_names if cmd_names.count(name) > 1]
+                    logger.warning(f"⚠️ Found duplicate commands: {set(duplicates)}")
             else:
-                logger.warning("⚠️ Guild sync returned 0 commands. This may be normal if commands are global-only.")
-                logger.info("Attempting global sync as fallback...")
-                # Try global sync as fallback
-                synced_global = await bot.tree.sync()
-                logger.info(f"✅ Synced {len(synced_global)} commands globally")
-                if synced_global:
-                    cmd_names = [c.name for c in synced_global]
-                    logger.info(f"→ Global commands synced: {', '.join(cmd_names[:10])}{'...' if len(cmd_names) > 10 else ''}")
-                    logger.info("Note: Global commands may take up to 1 hour to propagate to all servers.")
+                logger.warning("⚠️ Guild sync returned 0 commands.")
         except discord.HTTPException as http_err:
             logger.error(f"❌ HTTP error during sync: {http_err}")
             logger.error(f"   Status: {http_err.status}, Response: {http_err.text}")
-            # Try global sync as last resort
-            try:
-                logger.info("Attempting global sync as last resort...")
-                synced_global = await bot.tree.sync()
-                logger.info(f"✅ Global sync succeeded: {len(synced_global)} commands")
-            except Exception as e2:
-                logger.error(f"❌ Global sync also failed: {e2}")
         except discord.Forbidden as e:
             logger.warning(f"⚠️ Missing access to sync guild commands: {e}")
-            logger.warning("   Attempting global sync instead...")
-            try:
-                synced_global = await bot.tree.sync()
-                logger.info(f"✅ Global sync succeeded: {len(synced_global)} commands")
-            except Exception as e2:
-                logger.error(f"❌ Global sync failed: {e2}")
             logger.warning("   Make sure the bot has 'applications.commands' scope and proper permissions.")
             logger.warning("   Check: https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=0&scope=bot%20applications.commands")
     except Exception as e:
