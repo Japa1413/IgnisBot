@@ -20,7 +20,24 @@ class RemovePointsCog(commands.Cog):
     )
     @appcmd_channel_only(STAFF_CMDS_CHANNEL_ID)
     async def remove(self, interaction: discord.Interaction, member: discord.Member, points: int, reason: str):
-        await interaction.response.defer(thinking=True, ephemeral=False)
+        # Use safe interaction response helper for timeout protection
+        from utils.interaction_helpers import safe_interaction_response
+        
+        async def defer_response():
+            await interaction.response.defer(thinking=True, ephemeral=False)
+        
+        success = await safe_interaction_response(interaction, defer_response, timeout=3.0, retry_count=1)
+        if not success:
+            # If defer failed, try to send error message
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(
+                        "❌ Failed to process command. Please try again.",
+                        ephemeral=True
+                    )
+            except Exception:
+                pass
+            return
         
         try:
             # Use Service Layer

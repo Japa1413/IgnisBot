@@ -176,7 +176,9 @@ async def on_ready():
 # Handler de erros para app_commands (slash commands)
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
-    """Global handler for slash command errors"""
+    """Global handler for slash command errors with improved timeout handling"""
+    from utils.interaction_helpers import safe_interaction_response, get_channel_help_message
+    
     error_handled = False
     
     if isinstance(error, app_commands.CheckFailure):
@@ -186,36 +188,47 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
         # More specific message for channel restrictions
         if interaction.command:
             cmd_name = interaction.command.name
-            from utils.config import STAFF_CMDS_CHANNEL_ID
-            if cmd_name in ['add', 'remove', 'vc_log', 'userinfo']:
-                try:
-                    # Try to get allowed channel name
-                    allowed_channel = bot.get_channel(STAFF_CMDS_CHANNEL_ID)
-                    channel_name = f"**#{allowed_channel.name}**" if allowed_channel else f"channel with ID `{STAFF_CMDS_CHANNEL_ID}`"
-                    current_channel_name = f"#{interaction.channel.name}" if interaction.channel else "unknown channel"
-                    error_msg = f"❌ The `/{cmd_name}` command can only be used in {channel_name}.\n📍 You are currently in: **{current_channel_name}**"
-                except Exception:
-                    error_msg = f"❌ The `/{cmd_name}` command can only be used in a specific channel (ID: {STAFF_CMDS_CHANNEL_ID})."
+            from utils.config import STAFF_CMDS_CHANNEL_ID, USERINFO_CHANNEL_ID
+            
+            # Map commands to their allowed channels
+            channel_restrictions = {
+                'add': [STAFF_CMDS_CHANNEL_ID],
+                'remove': [STAFF_CMDS_CHANNEL_ID],
+                'vc_log': [STAFF_CMDS_CHANNEL_ID],
+                'userinfo': [USERINFO_CHANNEL_ID],
+                'induction': [STAFF_CMDS_CHANNEL_ID],
+            }
+            
+            if cmd_name in channel_restrictions:
+                allowed_channels = channel_restrictions[cmd_name]
+                error_msg = get_channel_help_message(cmd_name, allowed_channels, bot)
         
-        try:
+        # Use safe interaction response helper
+        async def send_error():
             if interaction.response.is_done():
-                await interaction.followup.send(error_msg, ephemeral=True)
+                from utils.interaction_helpers import safe_followup_send
+                await safe_followup_send(interaction, error_msg, ephemeral=True)
             else:
                 await interaction.response.send_message(error_msg, ephemeral=True)
+        
+        success = await safe_interaction_response(interaction, send_error, timeout=3.0, retry_count=1)
+        if success:
             error_handled = True
-        except Exception:
-            pass
             
     elif isinstance(error, app_commands.CommandNotFound):
         error_msg = "❌ Command not found. It may still be syncing (wait 1-2 minutes)."
-        try:
+        from utils.interaction_helpers import safe_interaction_response
+        
+        async def send_not_found():
             if interaction.response.is_done():
-                await interaction.followup.send(error_msg, ephemeral=True)
+                from utils.interaction_helpers import safe_followup_send
+                await safe_followup_send(interaction, error_msg, ephemeral=True)
             else:
                 await interaction.response.send_message(error_msg, ephemeral=True)
+        
+        success = await safe_interaction_response(interaction, send_not_found, timeout=3.0, retry_count=1)
+        if success:
             error_handled = True
-        except Exception:
-            pass
     
     # Log error
     cmd_name = interaction.command.name if interaction.command else 'unknown'
@@ -223,14 +236,16 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
     
     # If not handled, try to send generic message
     if not error_handled:
-        try:
+        from utils.interaction_helpers import safe_interaction_response
+        
+        async def send_generic_error():
             if not interaction.response.is_done():
                 await interaction.response.send_message(
                     "❌ An error occurred while processing the command. Please try again.",
                     ephemeral=True
                 )
-        except Exception:
-            pass
+        
+        await safe_interaction_response(interaction, send_generic_error, timeout=3.0, retry_count=0)
 
 # Ensure ensure_user_exists also works for slash commands
 @bot.listen("on_interaction")
@@ -252,7 +267,7 @@ async def _ensure_user_for_slash(interaction: discord.Interaction):
 
 @bot.hybrid_command()
 async def help(ctx: commands.Context):
-    """Displays a list of available commands."""
+    """Displays a list of available commands with channel restrictions information."""
     prefix = "/"
     embed = discord.Embed(title="Command List", color=discord.Color.dark_red())
     embed.timestamp = discord.utils.utcnow()
@@ -273,6 +288,27 @@ async def help(ctx: commands.Context):
                 value=command.help or "No description available.",
                 inline=False,
             )
+    
+    # Add channel restrictions information
+    from utils.config import STAFF_CMDS_CHANNEL_ID, USERINFO_CHANNEL_ID
+    
+    # Get channel names for better UX
+    staff_channel = bot.get_channel(STAFF_CMDS_CHANNEL_ID)
+    userinfo_channel = bot.get_channel(USERINFO_CHANNEL_ID)
+    
+    staff_channel_name = f"**#{staff_channel.name}**" if staff_channel else f"channel ID `{STAFF_CMDS_CHANNEL_ID}`"
+    userinfo_channel_name = f"**#{userinfo_channel.name}**" if userinfo_channel else f"channel ID `{USERINFO_CHANNEL_ID}`"
+    
+    embed.add_field(
+        name="\u200b",
+        value=(
+            "**📍 Channel Restrictions:**\n"
+            f"• `/add`, `/remove`, `/vc_log`, `/induction` → {staff_channel_name}\n"
+            f"• `/userinfo` → {userinfo_channel_name}\n"
+            "• Other commands work in any channel"
+        ),
+        inline=False
+    )
     
     # Add privacy information
     embed.add_field(

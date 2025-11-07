@@ -26,7 +26,24 @@ class AddPointsCog(commands.Cog):
         points: app_commands.Range[int, 1, 100_000],
         reason: str
     ):
-        await interaction.response.defer(thinking=True, ephemeral=False)
+        # Use safe interaction response helper for timeout protection
+        from utils.interaction_helpers import safe_interaction_response
+        
+        async def defer_response():
+            await interaction.response.defer(thinking=True, ephemeral=False)
+        
+        success = await safe_interaction_response(interaction, defer_response, timeout=3.0, retry_count=1)
+        if not success:
+            # If defer failed, try to send error message
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(
+                        "❌ Failed to process command. Please try again.",
+                        ephemeral=True
+                    )
+            except Exception:
+                pass
+            return
         try:
             # Use Service Layer (NEW - Architecture Phase 2)
             service = PointsService(self.bot)
