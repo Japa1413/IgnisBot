@@ -24,6 +24,7 @@ from cogs.cache_stats import CacheStatsCog
 from cogs.induction import InductionCog
 from cogs.rank import RankCog
 from cogs.health import HealthCog
+from cogs.admin_sync import AdminSync
 # If you have event_buttons.py as an extension with setup(bot), you can load it via load_extension
 
 intents = discord.Intents.default()
