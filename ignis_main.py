@@ -39,7 +39,7 @@ class IgnisBot(commands.Bot):
         self.remove_command("help")
         
         # Note: CommandTree is created automatically by commands.Bot
-        # We'll ensure commands are synced only to guild to prevent duplicates
+        # We'll sync commands only to guild to prevent duplicates
 
     async def setup_hook(self):
         # 1) Database first
