@@ -63,6 +63,7 @@ class IgnisBot(commands.Bot):
         await self.add_cog(InductionCog(self))
         await self.add_cog(RankCog(self))  # Rank management (nickname formatting, company mapping)
         await self.add_cog(HealthCog(self))  # Health check system
+        await self.add_cog(AdminSync(self))  # Admin sync command for troubleshooting
 
         # 4) Gamification Handlers DISABLED - Using manual progression system
         # from events.gamification_handlers import setup
@@ -116,19 +117,14 @@ async def on_ready():
             cmd_list = [f"{c.name} ({type(c).__name__})" for c in all_commands[:10]]
             logger.info(f"   Sample commands: {', '.join(cmd_list)}")
         
-        # FIX: Clear global commands first to prevent conflicts
-        # Then sync ONLY guild commands (not global) to prevent duplicates
+        # FIX: Sync commands properly
+        # Strategy: Try guild sync first, if it returns 0, commands are likely global
+        # Do NOT clear commands on startup - it removes working commands
         try:
-            # Clear any existing global commands that might interfere
-            try:
-                bot.tree.clear_commands(guild=None)
-                logger.debug("Cleared global commands to prevent conflicts")
-            except Exception as clear_err:
-                logger.debug(f"Could not clear global commands (may not exist): {clear_err}")
-            
-            # Now sync ONLY guild commands
+            # First, try to sync guild commands
             synced = await bot.tree.sync(guild=guild)
             logger.info(f"✅ Synced {len(synced)} commands for guild {GUILD_ID}")
+            
             if synced:
                 cmd_names = [c.name for c in synced]
                 logger.info(f"→ Guild commands synced: {', '.join(cmd_names[:10])}{'...' if len(cmd_names) > 10 else ''}")
@@ -142,9 +138,21 @@ async def on_ready():
                 else:
                     logger.info("✅ No duplicate commands detected")
             else:
-                logger.warning("⚠️ Guild sync returned 0 commands.")
-                logger.warning("   This may happen if commands are registered globally.")
-                logger.warning("   Try using /sync clear command to force a clean sync.")
+                # If guild sync returns 0, commands are likely registered globally
+                # This is OK - global commands work too, just sync them
+                logger.info("ℹ️ Guild sync returned 0 commands. Commands may be registered globally.")
+                logger.info("   Attempting global sync to ensure commands are available...")
+                
+                try:
+                    synced_global = await bot.tree.sync()
+                    logger.info(f"✅ Synced {len(synced_global)} commands globally")
+                    if synced_global:
+                        cmd_names = [c.name for c in synced_global]
+                        logger.info(f"→ Global commands synced: {', '.join(cmd_names[:10])}{'...' if len(cmd_names) > 10 else ''}")
+                        logger.info("   Note: Global commands work in all servers but may take up to 1 hour to propagate.")
+                except Exception as global_err:
+                    logger.warning(f"⚠️ Global sync failed: {global_err}")
+                    logger.warning("   Commands may already be synced. If issues persist, use /sync clear.")
         except discord.HTTPException as http_err:
             logger.error(f"❌ HTTP error during sync: {http_err}")
             logger.error(f"   Status: {http_err.status}, Response: {http_err.text}")

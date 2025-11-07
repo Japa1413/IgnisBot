@@ -1,5 +1,6 @@
 # cogs/admin_sync.py
 from __future__ import annotations
+import asyncio
 import discord
 from discord.ext import commands
 from discord import app_commands
