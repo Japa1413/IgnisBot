@@ -36,9 +36,22 @@ class AdminSync(commands.Cog):
                 )
 
             elif scope.lower() == "clear":
-                # Limpa TODOS os comandos do guild e reaplica
+                # Limpa TODOS os comandos (global e guild) e reaplica apenas no guild
+                try:
+                    # Clear global commands first
+                    tree.clear_commands(guild=None)
+                    await interaction.followup.send("🧹 Cleared global commands...", ephemeral=True)
+                except Exception as e:
+                    await interaction.followup.send(f"⚠️ Could not clear global commands: {e}", ephemeral=True)
+                
+                # Clear guild commands
                 tree.clear_commands(guild=guild_obj)
-                # FIX: Do NOT use copy_global_to - it causes duplicates
+                await interaction.followup.send("🧹 Cleared guild commands. Re-syncing...", ephemeral=True)
+                
+                # Wait a bit for Discord to process
+                await asyncio.sleep(1)
+                
+                # Now sync ONLY guild commands
                 cmds = await tree.sync(guild=guild_obj)
                 await interaction.followup.send(f"✅ Cleared and re-synced **{len(cmds)}** commands to guild.", ephemeral=True)
 
