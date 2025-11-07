@@ -24,6 +24,7 @@ class HealthCog(commands.Cog):
         name="health",
         description="Check bot health and system status"
     )
+    @app_commands.guild_only()
     async def health(self, interaction: discord.Interaction):
         """Check bot health and system status"""
         await interaction.response.defer(ephemeral=True, thinking=True)

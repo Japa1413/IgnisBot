@@ -116,11 +116,17 @@ async def on_ready():
             cmd_list = [f"{c.name} ({type(c).__name__})" for c in all_commands[:10]]
             logger.info(f"   Sample commands: {', '.join(cmd_list)}")
         
-        # FIX: Sync ONLY guild commands (not global) to prevent duplicates
-        # IMPORTANT: Do NOT use copy_global_to - it causes duplicates
-        # IMPORTANT: Do NOT clear commands before sync - it removes all commands
-        # The sync will automatically replace existing commands
+        # FIX: Clear global commands first to prevent conflicts
+        # Then sync ONLY guild commands (not global) to prevent duplicates
         try:
+            # Clear any existing global commands that might interfere
+            try:
+                bot.tree.clear_commands(guild=None)
+                logger.debug("Cleared global commands to prevent conflicts")
+            except Exception as clear_err:
+                logger.debug(f"Could not clear global commands (may not exist): {clear_err}")
+            
+            # Now sync ONLY guild commands
             synced = await bot.tree.sync(guild=guild)
             logger.info(f"✅ Synced {len(synced)} commands for guild {GUILD_ID}")
             if synced:
@@ -137,7 +143,8 @@ async def on_ready():
                     logger.info("✅ No duplicate commands detected")
             else:
                 logger.warning("⚠️ Guild sync returned 0 commands.")
-                logger.warning("   Commands may still be syncing. Wait a few seconds and try again.")
+                logger.warning("   This may happen if commands are registered globally.")
+                logger.warning("   Try using /sync clear command to force a clean sync.")
         except discord.HTTPException as http_err:
             logger.error(f"❌ HTTP error during sync: {http_err}")
             logger.error(f"   Status: {http_err.status}, Response: {http_err.text}")
