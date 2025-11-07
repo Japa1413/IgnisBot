@@ -67,8 +67,29 @@ async def get_user_cached(user_id: int) -> Optional[dict]:
     _cache_misses += 1
     logger.debug(f"Cache miss for user_id {user_id}")
     
-    from utils.database import get_user
-    data = await get_user(user_id)
+    # CRITICAL FIX: Call repository directly to avoid recursion
+    # get_user() would call get_user_cached() again, causing infinite recursion
+    try:
+        from repositories.user_repository import UserRepository
+        repo = UserRepository()
+        # Use use_cache=False to break recursion cycle
+        data = await repo.get(user_id, use_cache=False)
+    except ImportError:
+        # Fallback: direct database query if repository not available
+        from utils.database import _POOL
+        import aiomysql
+        
+        if _POOL is None:
+            logger.error("Database pool not initialized")
+            return None
+        
+        async with _POOL.acquire() as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cursor:
+                await cursor.execute(
+                    "SELECT user_id, points, exp, `rank`, path, next_rank, last_update, company, speciality, service_studs FROM users WHERE user_id = %s",
+                    (user_id,)
+                )
+                data = await cursor.fetchone()
     
     # Store in cache (even if None, to avoid repeated queries)
     if data is not None:
