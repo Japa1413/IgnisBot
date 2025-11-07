@@ -22,17 +22,25 @@ CACHE_TTL = timedelta(seconds=30)
 # Statistics
 _cache_hits = 0
 _cache_misses = 0
+_cache_evictions = 0
+_cache_warming_enabled = False
+_active_users: set[int] = set()  # Track active users for cache warming
 
 
 def get_cache_stats() -> dict:
     """Returns cache statistics"""
     total = _cache_hits + _cache_misses
     hit_rate = (_cache_hits / total * 100) if total > 0 else 0
+    eviction_rate = (_cache_evictions / total * 100) if total > 0 else 0
     return {
         "hits": _cache_hits,
         "misses": _cache_misses,
+        "evictions": _cache_evictions,
         "hit_rate": f"{hit_rate:.1f}%",
-        "entries": len(_user_cache)
+        "eviction_rate": f"{eviction_rate:.1f}%",
+        "entries": len(_user_cache),
+        "active_users": len(_active_users),
+        "warming_enabled": _cache_warming_enabled
     }
 
 
@@ -62,6 +70,8 @@ async def get_user_cached(user_id: int) -> Optional[dict]:
         else:
             # Cache expired, remove
             del _user_cache[user_id]
+            global _cache_evictions
+            _cache_evictions += 1
     
     # Cache miss - fetch from database
     _cache_misses += 1
@@ -94,6 +104,8 @@ async def get_user_cached(user_id: int) -> Optional[dict]:
     # Store in cache (even if None, to avoid repeated queries)
     if data is not None:
         _user_cache[user_id] = (data, now)
+        # Track active user for cache warming
+        _active_users.add(user_id)
     
     return data
 
@@ -129,4 +141,53 @@ def set_cache_ttl(seconds: int):
     global CACHE_TTL
     CACHE_TTL = timedelta(seconds=seconds)
     logger.info(f"Cache TTL updated to {seconds} seconds")
+
+
+async def warm_cache_for_users(user_ids: list[int]):
+    """
+    Warm cache for a list of user IDs.
+    Useful for pre-loading data for active users.
+    
+    Args:
+        user_ids: List of user IDs to warm cache for
+    """
+    global _cache_warming_enabled
+    if not _cache_warming_enabled:
+        return
+    
+    logger.info(f"Warming cache for {len(user_ids)} users")
+    for user_id in user_ids:
+        try:
+            await get_user_cached(user_id)
+        except Exception as e:
+            logger.warning(f"Failed to warm cache for user {user_id}: {e}")
+
+
+def enable_cache_warming():
+    """Enable cache warming for active users"""
+    global _cache_warming_enabled
+    _cache_warming_enabled = True
+    logger.info("Cache warming enabled")
+
+
+def disable_cache_warming():
+    """Disable cache warming"""
+    global _cache_warming_enabled
+    _cache_warming_enabled = False
+    logger.info("Cache warming disabled")
+
+
+def add_active_user(user_id: int):
+    """Add user to active users list for cache warming"""
+    _active_users.add(user_id)
+
+
+def remove_active_user(user_id: int):
+    """Remove user from active users list"""
+    _active_users.discard(user_id)
+
+
+def get_active_users() -> list[int]:
+    """Get list of active user IDs"""
+    return list(_active_users)
 

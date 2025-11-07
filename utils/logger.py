@@ -35,10 +35,20 @@ class StructuredFormatter(logging.Formatter):
         # Add additional context if available
         if hasattr(record, "user_id"):
             log_data["user_id"] = record.user_id
+        if hasattr(record, "command_name"):
+            log_data["command_name"] = record.command_name
+        if hasattr(record, "duration_ms"):
+            log_data["duration_ms"] = record.duration_ms
         if hasattr(record, "action"):
             log_data["action"] = record.action
         if hasattr(record, "extra_data"):
             log_data["extra_data"] = record.extra_data
+        
+        # Add performance metrics if available
+        if hasattr(record, "cache_hit"):
+            log_data["cache_hit"] = record.cache_hit
+        if hasattr(record, "db_query_time_ms"):
+            log_data["db_query_time_ms"] = record.db_query_time_ms
             
         # Add exception if present
         if record.exc_info:
@@ -138,7 +148,8 @@ def log_data_access(
     data_type: str,
     performed_by: Optional[int] = None,
     purpose: Optional[str] = None,
-    details: Optional[Dict[str, Any]] = None
+    details: Optional[Dict[str, Any]] = None,
+    duration_ms: Optional[float] = None
 ):
     """
     Logs personal data access (LGPD Art. 10).
@@ -150,6 +161,7 @@ def log_data_access(
         performed_by: ID of user who performed the action (None = user themselves)
         purpose: Purpose of access
         details: Additional operation details
+        duration_ms: Operation duration in milliseconds
     """
     logger = get_logger("ignisbot.audit")
     
@@ -164,12 +176,60 @@ def log_data_access(
     )
     log_record.user_id = user_id
     log_record.action = action_type
+    if duration_ms is not None:
+        log_record.duration_ms = duration_ms
     log_record.extra_data = {
         "data_type": data_type,
         "performed_by": performed_by,
         "purpose": purpose,
         "details": details or {}
     }
+    
+    logger.handle(log_record)
+
+
+def log_command_execution(
+    command_name: str,
+    user_id: int,
+    duration_ms: float,
+    success: bool = True,
+    error: Optional[str] = None,
+    cache_hit: Optional[bool] = None,
+    extra_data: Optional[Dict[str, Any]] = None
+):
+    """
+    Log command execution with performance metrics.
+    
+    Args:
+        command_name: Name of the command
+        user_id: User who executed the command
+        duration_ms: Execution duration in milliseconds
+        success: Whether command succeeded
+        error: Error message if failed
+        cache_hit: Whether cache was hit
+        extra_data: Additional context
+    """
+    logger = get_logger("ignisbot.commands")
+    level = logging.INFO if success else logging.ERROR
+    
+    log_record = logger.makeRecord(
+        logger.name,
+        level,
+        __file__,
+        0,
+        f"Command {command_name} executed by {user_id} in {duration_ms:.2f}ms",
+        (),
+        None
+    )
+    log_record.command_name = command_name
+    log_record.user_id = user_id
+    log_record.duration_ms = duration_ms
+    if cache_hit is not None:
+        log_record.cache_hit = cache_hit
+    if error:
+        log_record.extra_data = {"error": error, **(extra_data or {})}
+    else:
+        log_record.extra_data = extra_data or {}
     
     logger.handle(log_record)
 

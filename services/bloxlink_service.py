@@ -13,9 +13,17 @@ from __future__ import annotations
 import aiohttp
 from typing import Optional, Dict, Any
 from utils.logger import get_logger
+from utils.retry import retry_with_backoff, CircuitBreaker, CircuitBreakerOpenError
 import os
 
 logger = get_logger(__name__)
+
+# Circuit breaker for Bloxlink API
+_bloxlink_circuit_breaker = CircuitBreaker(
+    failure_threshold=5,
+    recovery_timeout=60,
+    expected_exception=aiohttp.ClientError
+)
 
 
 class BloxlinkService:
@@ -60,38 +68,62 @@ class BloxlinkService:
             if self.api_key:
                 headers["Authorization"] = f"Bearer {self.api_key}"
             
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
-                    if response.status == 404:
-                        # User not found or not verified
-                        logger.debug(f"User {discord_id} not found in Bloxlink")
-                        return None
-                    
-                    if response.status != 200:
-                        logger.warning(f"Bloxlink API returned status {response.status} for user {discord_id}")
-                        return None
-                    
-                    data = await response.json()
-                    
-                    # Bloxlink API response structure
-                    roblox_user_id = data.get("robloxId")
-                    if not roblox_user_id:
-                        logger.debug(f"User {discord_id} has no Roblox ID in Bloxlink")
-                        return None
-                    
-                    # Get username from Roblox API
-                    username = await self._get_roblox_username(roblox_user_id)
-                    
-                    # Build avatar URL
-                    avatar_url = f"https://www.roblox.com/headshot-thumbnail/image?userId={roblox_user_id}&width=420&height=420&format=png"
-                    
-                    return {
-                        "username": username or f"User_{roblox_user_id}",
-                        "id": roblox_user_id,
-                        "avatar_url": avatar_url,
-                        "verified": True,
-                        "verified_at": data.get("verifiedAt")
-                    }
+            # Use retry with circuit breaker
+            async def _fetch():
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                        if response.status == 404:
+                            # User not found or not verified
+                            logger.debug(f"User {discord_id} not found in Bloxlink")
+                            return None
+                        
+                        if response.status != 200:
+                            logger.warning(f"Bloxlink API returned status {response.status} for user {discord_id}")
+                            return None
+                        
+                        data = await response.json()
+                        return data
+            
+            try:
+                data = await _bloxlink_circuit_breaker.call(_fetch)
+            except CircuitBreakerOpenError as e:
+                logger.error(f"Circuit breaker open for Bloxlink API: {e}")
+                return None
+            except Exception as e:
+                # Retry with exponential backoff
+                try:
+                    data = await retry_with_backoff(
+                        _fetch,
+                        max_retries=3,
+                        initial_delay=1.0,
+                        max_delay=10.0
+                    )
+                except Exception as retry_error:
+                    logger.error(f"All retries failed for Bloxlink API: {retry_error}")
+                    return None
+            
+            if data is None:
+                return None
+            
+            # Bloxlink API response structure
+            roblox_user_id = data.get("robloxId")
+            if not roblox_user_id:
+                logger.debug(f"User {discord_id} has no Roblox ID in Bloxlink")
+                return None
+            
+            # Get username from Roblox API
+            username = await self._get_roblox_username(roblox_user_id)
+            
+            # Build avatar URL
+            avatar_url = f"https://www.roblox.com/headshot-thumbnail/image?userId={roblox_user_id}&width=420&height=420&format=png"
+            
+            return {
+                "username": username or f"User_{roblox_user_id}",
+                "id": roblox_user_id,
+                "avatar_url": avatar_url,
+                "verified": True,
+                "verified_at": data.get("verifiedAt")
+            }
                     
         except aiohttp.ClientError as e:
             logger.error(f"Error fetching Bloxlink data for user {discord_id}: {e}", exc_info=True)
