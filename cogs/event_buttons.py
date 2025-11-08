@@ -1106,7 +1106,7 @@ class SalamandersEventPanel(commands.Cog):
         
         embed.set_footer(
             text="Vulkan Lives • For Nocturne. For the Forge.",
-            icon_url="https://cdn.discordapp.com/emojis/1158979646512177253.webp?size=128&quality=lossless"
+            icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
         )
         
         return embed

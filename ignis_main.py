@@ -21,7 +21,8 @@ from cogs.leaderboard import LeaderboardCog
 from cogs.data_privacy import DataPrivacyCog
 from cogs.legal import LegalCog
 from cogs.cache_stats import CacheStatsCog
-from cogs.induction import InductionCog
+# Process command replaces old induction command
+# from cogs.induction import InductionCog  # Replaced by ProcessCog
 from cogs.rank import RankCog
 from cogs.health import HealthCog
 from cogs.admin_sync import AdminSync
@@ -61,7 +62,12 @@ class IgnisBot(commands.Bot):
         await self.add_cog(DataPrivacyCog(self))
         await self.add_cog(LegalCog(self))
         await self.add_cog(CacheStatsCog(self))
-        await self.add_cog(InductionCog(self))
+        # Process command (replaces old induction command)
+        from cogs.process import ProcessCog
+        await self.add_cog(ProcessCog(self))
+        # Roadmap announcements
+        from cogs.roadmap import RoadmapCog
+        await self.add_cog(RoadmapCog(self))
         await self.add_cog(RankCog(self))  # Rank management (nickname formatting, company mapping)
         await self.add_cog(HealthCog(self))  # Health check system
         await self.add_cog(AdminSync(self))  # Admin sync command for troubleshooting
@@ -276,14 +282,20 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
         await safe_interaction_response(interaction, send_generic_error, timeout=3.0, retry_count=0)
 
 # Ensure ensure_user_exists also works for slash commands
+# IMPORTANT: Only process interactions from THIS bot to avoid interfering with other bots (e.g., Bloxlink)
 @bot.listen("on_interaction")
 async def _ensure_user_for_slash(interaction: discord.Interaction):
     try:
+        # Only process if this is an application command AND it belongs to our bot
         if interaction.type == discord.InteractionType.application_command and interaction.user:
-            await ensure_user_exists(interaction.user.id)
+            # Check if the command belongs to our bot (not other bots like Bloxlink)
+            # interaction.application_id is the bot ID that owns the command
+            if interaction.application_id == bot.user.id:
+                await ensure_user_exists(interaction.user.id)
+            # If command belongs to another bot (e.g., Bloxlink), silently skip
     except Exception as e:
-        # Don't break handler flow
-        logger.warning(f"[ensure_user_exists] interaction error: {e}")
+        # Don't break handler flow - silently log and continue
+        logger.debug(f"[ensure_user_exists] interaction skipped (not our command): {e}")
 
 
 # Voice state updates are now handled by MemberActivityLogCog

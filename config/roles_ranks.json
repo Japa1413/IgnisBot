@@ -19,14 +19,9 @@
     "Company": {
       "Captain": "Flameborne Captain",
       "1st Lieutenant": "1st Lieutenant (Pyre Watcher)",
-      "1st Lieutenant (Pyre Watcher)": "1st Lieutenant (Pyre Watcher)",
       "2nd Lieutenant": "2nd Lieutenant (Furnace Warden)",
-      "2nd Lieutenant (Furnace Warden)": "2nd Lieutenant (Furnace Warden)",
       "Veteran Sergeant": "Emberblade Veteran Sergeant",
-      "Emberblade Veteran Sergeant": "Emberblade Veteran Sergeant",
-      "Legion Sergeant": "Cindershield Sergeant",
-      "Cindershield Sergeant": "Cindershield Sergeant",
-      "Flameborne Captain": "Flameborne Captain"
+      "Legion Sergeant": "Cindershield Sergeant"
     },
     "Specialist": {
       "Chaplain": "Chaplain",
@@ -90,4 +85,3 @@
     "note": "Order is from lowest to highest priority"
   }
 }
-
