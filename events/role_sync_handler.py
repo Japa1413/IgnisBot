@@ -13,6 +13,7 @@ from typing import Optional
 
 from services.progression_service import ProgressionService
 from services.audit_service import AuditService
+from services.config_service import get_config_service
 from utils.rank_paths import ALL_PATHS, DEFAULT_PATH
 from utils.logger import get_logger
 
@@ -31,11 +32,16 @@ class RoleSyncHandler(commands.Cog):
         self.bot = bot
         self.progression_service = ProgressionService()
         self.audit_service = AuditService()
+        self.config_service = get_config_service()
         
-        # Map Discord roles to system ranks
-        # Some roles may have different names in Discord vs system
-        # This map handles any discrepancies
-        self.role_to_rank_map = {
+        # Load role-to-rank mapping from configuration service
+        # This allows easy editing without code changes
+        self.role_to_rank_map = self.config_service.get_role_to_rank_map()
+        
+        # Fallback to hardcoded map if config is empty (backward compatibility)
+        if not self.role_to_rank_map:
+            logger.warning("Config service returned empty map, using fallback")
+            self.role_to_rank_map = {
             # High Command
             "Emperor Of Mankind": "Emperor Of Mankind",
             "Primarch": "Primarch",
@@ -224,8 +230,8 @@ class RoleSyncHandler(commands.Cog):
             )
             
             logger.info(
-                f"✅ Rank synced for user {after.id} ({after.display_name}): "
-                f"{current_rank} → {new_rank} (from Discord role: {after_role})"
+                f"Rank synced for user {after.id} ({after.display_name}): "
+                f"{current_rank} -> {new_rank} (from Discord role: {after_role})"
             )
             
         except Exception as e:
@@ -238,5 +244,5 @@ class RoleSyncHandler(commands.Cog):
 async def setup(bot: commands.Bot):
     """Setup function to load the cog"""
     await bot.add_cog(RoleSyncHandler(bot))
-    logger.info("✅ Role sync handler loaded (automatic rank synchronization active)")
+    logger.info("Role sync handler loaded (automatic rank synchronization active)")
 

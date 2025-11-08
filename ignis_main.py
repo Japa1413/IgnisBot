@@ -82,7 +82,19 @@ class IgnisBot(commands.Bot):
         from cogs.event_buttons import setup as setup_event_panel
         await setup_event_panel(self)
         
-        # 8) (Optional) Load other extensions
+        # 8) Gamenight Role Assignment - Auto-role system
+        from cogs.gamenight_role import setup as setup_gamenight_role
+        await setup_gamenight_role(self)
+        
+        # 9) Config Manager - Role-to-rank configuration management
+        from cogs.config_manager import setup as setup_config_manager
+        await setup_config_manager(self)
+        
+        # 10) Self-Repair Service - Start monitoring (will start after on_ready)
+        from services.self_repair_service import SelfRepairService
+        self.self_repair = SelfRepairService(self)
+        
+        # 11) (Optional) Load other extensions
         # await self.load_extension("cogs.other")
 
 
@@ -91,18 +103,24 @@ bot = IgnisBot()
 
 @bot.event
 async def on_ready():
+    # Start self-repair monitoring after bot is ready
+    if hasattr(bot, 'self_repair') and bot.self_repair:
+        if not bot.self_repair.is_monitoring:
+            await bot.self_repair.start_monitoring()
+            logger.info("Self-repair monitoring started")
+    
     await bot.change_presence(
         status=discord.Status.dnd,
         activity=discord.Game(name="Loyalty is its own reward.")
     )
-    logger.info(f"🔥 Logged in as {bot.user} (id={bot.user.id})")
+    logger.info(f"Logged in as {bot.user} (id={bot.user.id})")
     
     if not hasattr(bot, 'ready_count'):
         bot.ready_count = 0
     bot.ready_count += 1
     
     if bot.ready_count > 1:
-        logger.warning("⚠️ Bot reconnected (ready_count > 1). Skipping initialization.")
+        logger.warning("Bot reconnected (ready_count > 1). Skipping initialization.")
         return
     
     # Sync slash commands after bot is ready
@@ -124,7 +142,7 @@ async def on_ready():
         try:
             # First, try to sync guild commands
             synced = await bot.tree.sync(guild=guild)
-            logger.info(f"✅ Synced {len(synced)} commands for guild {GUILD_ID}")
+            logger.info(f"Synced {len(synced)} commands for guild {GUILD_ID}")
             
             if synced:
                 cmd_names = [c.name for c in synced]
@@ -134,35 +152,35 @@ async def on_ready():
                 unique_names = set(cmd_names)
                 if len(unique_names) < len(cmd_names):
                     duplicates = [name for name in cmd_names if cmd_names.count(name) > 1]
-                    logger.warning(f"⚠️ Found duplicate commands: {set(duplicates)}")
+                    logger.warning(f"Found duplicate commands: {set(duplicates)}")
                     logger.warning("   If duplicates persist, use /sync clear to force a clean sync")
                 else:
-                    logger.info("✅ No duplicate commands detected")
+                    logger.info("No duplicate commands detected")
             else:
                 # If guild sync returns 0, commands are likely registered globally
                 # This is OK - global commands work too, just sync them
-                logger.info("ℹ️ Guild sync returned 0 commands. Commands may be registered globally.")
+                logger.info("Guild sync returned 0 commands. Commands may be registered globally.")
                 logger.info("   Attempting global sync to ensure commands are available...")
                 
                 try:
                     synced_global = await bot.tree.sync()
-                    logger.info(f"✅ Synced {len(synced_global)} commands globally")
+                    logger.info(f"Synced {len(synced_global)} commands globally")
                     if synced_global:
                         cmd_names = [c.name for c in synced_global]
                         logger.info(f"→ Global commands synced: {', '.join(cmd_names[:10])}{'...' if len(cmd_names) > 10 else ''}")
                         logger.info("   Note: Global commands work in all servers but may take up to 1 hour to propagate.")
                 except Exception as global_err:
-                    logger.warning(f"⚠️ Global sync failed: {global_err}")
+                    logger.warning(f"Global sync failed: {global_err}")
                     logger.warning("   Commands may already be synced. If issues persist, use /sync clear.")
         except discord.HTTPException as http_err:
-            logger.error(f"❌ HTTP error during sync: {http_err}")
+            logger.error(f"HTTP error during sync: {http_err}")
             logger.error(f"   Status: {http_err.status}, Response: {http_err.text}")
         except discord.Forbidden as e:
-            logger.warning(f"⚠️ Missing access to sync guild commands: {e}")
+            logger.warning(f"Missing access to sync guild commands: {e}")
             logger.warning("   Make sure the bot has 'applications.commands' scope and proper permissions.")
             logger.warning("   Check: https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=0&scope=bot%20applications.commands")
     except Exception as e:
-        logger.error(f"❌ Unexpected sync error: {e}", exc_info=True)
+        logger.error(f"Unexpected sync error: {e}", exc_info=True)
     
     # Auto-post/update event panel after a short delay to ensure everything is loaded
     async def post_event_panel_delayed():
@@ -180,7 +198,7 @@ async def on_ready():
     # Enable cache warming for active users
     from utils.cache import enable_cache_warming
     enable_cache_warming()
-    logger.info("✅ Cache warming enabled")
+    logger.info("Cache warming enabled")
 
 
 # Handler de erros para app_commands (slash commands)

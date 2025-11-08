@@ -28,16 +28,16 @@ class Colors:
     RESET = '\033[0m'
 
 def print_success(msg):
-    print(f"{Colors.GREEN}✅ {msg}{Colors.RESET}")
+    print(f"{Colors.GREEN}[OK] {msg}{Colors.RESET}")
 
 def print_warning(msg):
-    print(f"{Colors.YELLOW}⚠️ {msg}{Colors.RESET}")
+    print(f"{Colors.YELLOW}[WARN] {msg}{Colors.RESET}")
 
 def print_error(msg):
-    print(f"{Colors.RED}❌ {msg}{Colors.RESET}")
+    print(f"{Colors.RED}[ERRO] {msg}{Colors.RESET}")
 
 def print_info(msg):
-    print(f"{Colors.BLUE}ℹ️ {msg}{Colors.RESET}")
+    print(f"{Colors.BLUE}[INFO] {msg}{Colors.RESET}")
 
 def get_project_stats():
     """Coleta estatísticas do projeto."""
@@ -158,7 +158,7 @@ def update_changelog_date(changelog_path: Path):
 
 def main():
     """Função principal."""
-    print_info("🔄 Atualizando documentação do GitHub...")
+    print_info("Atualizando documentacao do GitHub...")
     print()
     
     root_dir = Path(__file__).parent.parent
@@ -205,10 +205,10 @@ def main():
     
     print()
     if updated:
-        print_success("✅ Documentação do GitHub atualizada com sucesso!")
+        print_success("Documentacao do GitHub atualizada com sucesso!")
         print_info("💡 Execute 'git add README.md README_EN.md CHANGELOG.md' para incluir as mudanças")
     else:
-        print_info("✅ Tudo já está atualizado!")
+        print_info("Tudo ja esta atualizado!")
     
     return 0
 

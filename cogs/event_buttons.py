@@ -47,6 +47,30 @@ class PatrolDescriptionModal(discord.ui.Modal, title="Confirmation Modal (PATROL
     
     async def on_submit(self, interaction: discord.Interaction):
         """Handle modal submission with description."""
+        # CRITICAL: Check if there's an active event BEFORE posting
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(self.bot)
+        
+        if event_panel_cog is None:
+            logger.error("Event panel cog not found! Cannot check for active events.")
+            await interaction.response.send_message(
+                "❌ Internal error: Event panel system not available.",
+                ephemeral=True
+            )
+            return
+        
+        if event_panel_cog.is_event_active():
+            active_info = event_panel_cog.get_active_event_info()
+            logger.warning(f"🚫 BLOCKED PatrolDescriptionModal submission attempt: {self.event_key} - Active event: {active_info}")
+            error_msg = (
+                "❌ **There is already an active event!**\n\n"
+                f"{active_info}\n\n"
+                "You must end the current event before posting a new one. "
+                "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+            )
+            await interaction.response.send_message(error_msg, ephemeral=True)
+            return
+        
         await interaction.response.defer(ephemeral=True, thinking=True)
         
         custom_description = self.description_input.value
@@ -57,6 +81,254 @@ class PatrolDescriptionModal(discord.ui.Modal, title="Confirmation Modal (PATROL
             interaction=interaction,
             event_key=self.event_key,
             custom_description=custom_description,
+            custom_link=None,
+            host_user=self.host_user
+        )
+
+
+class TrainingEventModal(discord.ui.Modal):
+    """Base modal for training events (Combat Training, Basic Training, IPR, PR, Rally) with mandatory description and link."""
+    
+    description_input = discord.ui.TextInput(
+        label="Description *",
+        placeholder="Enter event description (required)",
+        style=discord.TextStyle.paragraph,
+        required=True,
+        max_length=500
+    )
+    
+    private_server_link_input = discord.ui.TextInput(
+        label="Private Server Link *",
+        placeholder="https://www.roblox.com/games/.../private-servers/...",
+        style=discord.TextStyle.short,
+        required=True,
+        max_length=200
+    )
+    
+    def __init__(self, bot: commands.Bot, event_key: str, host_user: discord.Member, modal_title: str):
+        super().__init__(title=modal_title)
+        self.bot = bot
+        self.event_key = event_key
+        self.host_user = host_user
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        """Handle modal submission with description and mandatory link."""
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        
+        custom_description = self.description_input.value.strip()
+        custom_link = self.private_server_link_input.value.strip() if self.private_server_link_input.value else None
+        
+        # Validate description is not empty
+        if not custom_description:
+            await interaction.followup.send(
+                "❌ Description is required. Please try again.",
+                ephemeral=True
+            )
+            return
+        
+        # Validate link is provided and not empty
+        if not custom_link:
+            await interaction.followup.send(
+                "❌ Private server link is required. Please provide a valid Roblox private server link.",
+                ephemeral=True
+            )
+            return
+        
+        # Validate link format
+        if not (custom_link.startswith("http://") or custom_link.startswith("https://")):
+            await interaction.followup.send(
+                "❌ Invalid link format. Please provide a valid URL starting with http:// or https://",
+                ephemeral=True
+            )
+            return
+        
+        # Post event with custom description and link
+        await _post_event_with_description(
+            bot=self.bot,
+            interaction=interaction,
+            event_key=self.event_key,
+            custom_description=custom_description,
+            custom_link=custom_link,
+            host_user=self.host_user
+        )
+
+
+class CombatTrainingModal(TrainingEventModal):
+    """Modal for Combat Training event."""
+    def __init__(self, bot: commands.Bot, event_key: str, host_user: discord.Member):
+        super().__init__(bot, event_key, host_user, "Combat Training Event")
+
+
+class BasicTrainingModal(TrainingEventModal):
+    """Modal for Basic Training event."""
+    def __init__(self, bot: commands.Bot, event_key: str, host_user: discord.Member):
+        super().__init__(bot, event_key, host_user, "Basic Training Event")
+
+
+class InternalRaidModal(TrainingEventModal):
+    """Modal for Internal Practice Raid event."""
+    def __init__(self, bot: commands.Bot, event_key: str, host_user: discord.Member):
+        super().__init__(bot, event_key, host_user, "Internal Practice Raid Event")
+
+
+class PracticeRaidModal(TrainingEventModal):
+    """Modal for Practice Raid event."""
+    def __init__(self, bot: commands.Bot, event_key: str, host_user: discord.Member):
+        super().__init__(bot, event_key, host_user, "Practice Raid Event")
+
+
+class RallyModal(TrainingEventModal):
+    """Modal for Rally event."""
+    def __init__(self, bot: commands.Bot, event_key: str, host_user: discord.Member):
+        super().__init__(bot, event_key, host_user, "Rally Event")
+
+
+class CustomEventTitleView(discord.ui.View):
+    """View for selecting preset title or entering custom title for custom events."""
+    
+    def __init__(self, bot: commands.Bot, host_user: discord.Member):
+        super().__init__(timeout=300)
+        self.bot = bot
+        self.host_user = host_user
+    
+    @discord.ui.button(label="++ Gamenight ++", style=discord.ButtonStyle.primary, row=0)
+    async def btn_gamenight(self, interaction: discord.Interaction, _: discord.ui.Button):
+        """Select Gamenight preset title."""
+        # CRITICAL: Check if there's an active event BEFORE opening modal
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(self.bot)
+        
+        if event_panel_cog is None:
+            logger.error("Event panel cog not found! Cannot check for active events.")
+            await interaction.response.send_message(
+                "❌ Internal error: Event panel system not available.",
+                ephemeral=True
+            )
+            return
+        
+        if event_panel_cog.is_event_active():
+            active_info = event_panel_cog.get_active_event_info()
+            logger.warning(f"🚫 BLOCKED Gamenight event posting attempt - Active event: {active_info}")
+            error_msg = (
+                "❌ **There is already an active event!**\n\n"
+                f"{active_info}\n\n"
+                "You must end the current event before posting a new one. "
+                "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+            )
+            await interaction.response.send_message(error_msg, ephemeral=True)
+            return
+        
+        modal = CustomEventModal(self.bot, self.host_user, preset_title="++ Gamenight ++")
+        await interaction.response.send_modal(modal)
+    
+    @discord.ui.button(label="Custom Title", style=discord.ButtonStyle.secondary, row=0)
+    async def btn_custom_title(self, interaction: discord.Interaction, _: discord.ui.Button):
+        """Open modal for custom title input."""
+        # CRITICAL: Check if there's an active event BEFORE opening modal
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(self.bot)
+        
+        if event_panel_cog is None:
+            logger.error("Event panel cog not found! Cannot check for active events.")
+            await interaction.response.send_message(
+                "❌ Internal error: Event panel system not available.",
+                ephemeral=True
+            )
+            return
+        
+        if event_panel_cog.is_event_active():
+            active_info = event_panel_cog.get_active_event_info()
+            logger.warning(f"🚫 BLOCKED Custom Title event posting attempt - Active event: {active_info}")
+            error_msg = (
+                "❌ **There is already an active event!**\n\n"
+                f"{active_info}\n\n"
+                "You must end the current event before posting a new one. "
+                "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+            )
+            await interaction.response.send_message(error_msg, ephemeral=True)
+            return
+        
+        modal = CustomEventModal(self.bot, self.host_user, preset_title=None)
+        await interaction.response.send_modal(modal)
+
+
+class CustomEventModal(discord.ui.Modal):
+    """Modal for custom events with title selection/input and description."""
+    
+    def __init__(self, bot: commands.Bot, host_user: discord.Member, preset_title: str | None = None):
+        super().__init__(title="Custom Event")
+        self.bot = bot
+        self.host_user = host_user
+        
+        # Create title input dynamically to support preset title
+        self.title_input = discord.ui.TextInput(
+            label="Event Title *",
+            placeholder="++ Your Event Title ++ (format required)",
+            style=discord.TextStyle.short,
+            required=True,
+            max_length=100,
+            default=preset_title if preset_title else ""
+        )
+        self.add_item(self.title_input)
+        
+        self.description_input = discord.ui.TextInput(
+            label="Description *",
+            placeholder="Enter event description (required)",
+            style=discord.TextStyle.paragraph,
+            required=True,
+            max_length=500
+        )
+        self.add_item(self.description_input)
+        
+        self.private_server_link_input = discord.ui.TextInput(
+            label="Private Server Link (Optional)",
+            placeholder="https://www.roblox.com/games/.../private-servers/...",
+            style=discord.TextStyle.short,
+            required=False,
+            max_length=200
+        )
+        self.add_item(self.private_server_link_input)
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        """Handle modal submission with title, description and optional link."""
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        
+        custom_title = self.title_input.value.strip()
+        custom_description = self.description_input.value.strip()
+        custom_link = self.private_server_link_input.value.strip() if self.private_server_link_input.value else None
+        
+        # Validate title format: must be ++ Text ++
+        if not custom_title.startswith("++ ") or not custom_title.endswith(" ++"):
+            await interaction.followup.send(
+                "❌ Invalid title format. Title must be in format: ++ Your Title ++\n"
+                "Example: ++ Gamenight ++",
+                ephemeral=True
+            )
+            return
+        
+        # Validate description is not empty
+        if not custom_description:
+            await interaction.followup.send(
+                "❌ Description is required. Please try again.",
+                ephemeral=True
+            )
+            return
+        
+        # Validate link format if provided
+        if custom_link and not (custom_link.startswith("http://") or custom_link.startswith("https://")):
+            await interaction.followup.send(
+                "❌ Invalid link format. Please provide a valid URL starting with http:// or https://",
+                ephemeral=True
+            )
+            return
+        
+        # Post custom event
+        await _post_custom_event(
+            bot=self.bot,
+            interaction=interaction,
+            custom_title=custom_title,
+            custom_description=custom_description,
+            custom_link=custom_link,
             host_user=self.host_user
         )
 
@@ -72,6 +344,30 @@ class PatrolConfirmationView(discord.ui.View):
     @discord.ui.button(label="Confirm", style=discord.ButtonStyle.success)
     async def confirm_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Confirm without description."""
+        # CRITICAL: Check if there's an active event BEFORE posting
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(self.bot)
+        
+        if event_panel_cog is None:
+            logger.error("Event panel cog not found! Cannot check for active events.")
+            await interaction.response.send_message(
+                "❌ Internal error: Event panel system not available.",
+                ephemeral=True
+            )
+            return
+        
+        if event_panel_cog.is_event_active():
+            active_info = event_panel_cog.get_active_event_info()
+            logger.warning(f"🚫 BLOCKED event confirmation attempt: {self.event_key} - Active event: {active_info}")
+            error_msg = (
+                "❌ **There is already an active event!**\n\n"
+                f"{active_info}\n\n"
+                "You must end the current event before posting a new one. "
+                "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+            )
+            await interaction.response.send_message(error_msg, ephemeral=True)
+            return
+        
         await interaction.response.defer(ephemeral=True, thinking=True)
         
         await _post_event_with_description(
@@ -79,12 +375,37 @@ class PatrolConfirmationView(discord.ui.View):
             interaction=interaction,
             event_key=self.event_key,
             custom_description=None,
+            custom_link=None,
             host_user=interaction.user
         )
     
     @discord.ui.button(label="Confirm with Description", style=discord.ButtonStyle.danger)
     async def confirm_with_desc_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Open modal for description."""
+        # CRITICAL: Check if there's an active event BEFORE opening modal
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(self.bot)
+        
+        if event_panel_cog is None:
+            logger.error("Event panel cog not found! Cannot check for active events.")
+            await interaction.response.send_message(
+                "❌ Internal error: Event panel system not available.",
+                ephemeral=True
+            )
+            return
+        
+        if event_panel_cog.is_event_active():
+            active_info = event_panel_cog.get_active_event_info()
+            logger.warning(f"🚫 BLOCKED event confirmation with description attempt: {self.event_key} - Active event: {active_info}")
+            error_msg = (
+                "❌ **There is already an active event!**\n\n"
+                f"{active_info}\n\n"
+                "You must end the current event before posting a new one. "
+                "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+            )
+            await interaction.response.send_message(error_msg, ephemeral=True)
+            return
+        
         modal = PatrolDescriptionModal(
             bot=self.bot,
             event_key=self.event_key,
@@ -152,12 +473,118 @@ class EventEndView(discord.ui.View):
         await interaction.followup.send("✅ Event concluded successfully.", ephemeral=True)
 
 
+async def _post_custom_event(
+    bot: commands.Bot,
+    interaction: discord.Interaction,
+    custom_title: str,
+    custom_description: str,
+    custom_link: str | None,
+    host_user: discord.Member
+):
+    """Post custom event announcement with custom title, description and optional link."""
+    # Check if there's an active event BEFORE posting
+    from cogs.event_buttons import get_event_panel_cog
+    event_panel_cog = get_event_panel_cog(bot)
+    
+    if event_panel_cog is None:
+        logger.error("❌ Event panel cog not found! Cannot check for active events.")
+        await interaction.followup.send("❌ Internal error: Event panel system not available.", ephemeral=True)
+        return
+    
+    # CRITICAL: Check for active event BEFORE posting anything
+    if event_panel_cog.is_event_active():
+        active_info = event_panel_cog.get_active_event_info()
+        logger.warning(f"🚫 BLOCKED custom event posting attempt - Active event: {active_info}")
+        error_msg = (
+            "❌ **There is already an active event!**\n\n"
+            f"{active_info}\n\n"
+            "You must end the current event before posting a new one. "
+            "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+        )
+        await interaction.followup.send(error_msg, ephemeral=True)
+        return
+    
+    logger.info(f"✅ No active event found, proceeding with custom event posting: {custom_title}")
+    
+    try:
+        # Use default link if not provided
+        default_link = "https://www.roblox.com/games/99813489644549/Averium-Invicta-The-Grave-World"
+        event_link = custom_link if custom_link else default_link
+        
+        # Post event announcement
+        announcement_message = await post_event_announcement(
+            bot,
+            channel_id=EVENT_ANNOUNCEMENT_CHANNEL_ID,
+            title=custom_title,
+            description=custom_description,
+            when="",
+            location="",
+            link=event_link,
+            color=0x95A5A6,  # Grey color for custom events
+            ping_role_id=None,
+            image_url="https://i.pinimg.com/originals/97/10/32/9710328fc2d70322bab4d6d05da6e9ba.jpg",  # Custom event image
+            footer_text="For Nocturne. For Vulkan.",
+            footer_icon=None,
+            author_name=host_user.mention,
+            author_icon=None,
+        )
+        
+        # Get the message ID from the announcement
+        event_message_id = announcement_message.id if announcement_message else None
+        
+        # Post End control message in event-publishing channel
+        end_channel = bot.get_channel(EVENT_PANEL_CHANNEL_ID)
+        end_message_id = None
+        if isinstance(end_channel, discord.TextChannel):
+            end_embed = discord.Embed(
+                title="Event End",
+                description=(
+                    "The forge bellows still, but this chapter draws to a close. "
+                    "Stand ready to mark the end of this event when all duties are fulfilled."
+                ),
+                color=discord.Color.red(),
+                timestamp=discord.utils.utcnow()
+            )
+            end_embed.set_footer(text=f"Event: {custom_title} • Host: {host_user.display_name}")
+            
+            # First send message without view to get message ID
+            end_message = await end_channel.send(embed=end_embed)
+            end_message_id = end_message.id
+            
+            # Now create view with actual message ID
+            end_view = EventEndView(bot, end_message.id, host_user)
+            await end_message.edit(view=end_view)
+        
+        # Mark event as active IMMEDIATELY after posting
+        if event_panel_cog and event_message_id and end_message_id:
+            event_panel_cog.set_active_event(
+                event_message_id=event_message_id,
+                end_message_id=end_message_id,
+                host_user=host_user,
+                event_title=custom_title
+            )
+            logger.info(f"✅ Custom event marked as active: {custom_title} (Event ID: {event_message_id}, End ID: {end_message_id})")
+        else:
+            logger.error(f"❌ Failed to mark custom event as active! event_panel_cog={event_panel_cog is not None}, event_message_id={event_message_id}, end_message_id={end_message_id}")
+        
+        await interaction.followup.send(f"✅ Posted **{custom_title}** event.", ephemeral=True)
+        logger.info(f"Custom event '{custom_title}' posted by {host_user.id}")
+    
+    except Exception as e:
+        logger.error(f"Error posting custom event announcement: {e}", exc_info=True)
+        await interaction.followup.send(
+            f"❌ Error posting event: {str(e)}",
+            ephemeral=True
+        )
+
+
 async def _post_event_with_description(
     bot: commands.Bot,
     interaction: discord.Interaction,
     event_key: str,
     custom_description: str | None,
-    host_user: discord.Member
+    custom_link: str | None = None,
+    host_user: discord.Member = None
 ):
     """Post event announcement with optional custom description."""
     # Check if there's an active event BEFORE posting
@@ -198,8 +625,11 @@ async def _post_event_with_description(
     
     try:
         # Post event announcement
-        # Only Patrol event gets the image
-        event_image_url = preset.get("image_url") if event_key == "patrol" else None
+        # All events with image_url in preset get their specific images
+        event_image_url = preset.get("image_url") if preset.get("image_url") else None
+        
+        # Use custom link if provided, otherwise use preset link, otherwise use default
+        event_link = custom_link if custom_link else preset.get("link")
         
         # Post event announcement and get message ID
         announcement_message = await post_event_announcement(
@@ -209,10 +639,10 @@ async def _post_event_with_description(
             description=final_description if final_description else "",
             when="",  # Not used anymore
             location="",  # Not used anymore
-            link=preset.get("link"),  # Will use default if None
+            link=event_link,  # Use custom link if provided, otherwise preset/default
             color=preset.get("color", 0x2B2D31),
             ping_role_id=None,  # Will use Salamanders role automatically
-            image_url=event_image_url,  # Only Patrol event has image
+            image_url=event_image_url,  # Patrol and Combat Training events have images
             footer_text="For Nocturne. For Vulkan.",
             footer_icon=None,  # Will use specified icon automatically
             author_name=host_user.mention,  # Host field in description (not "Posted by")
@@ -295,6 +725,31 @@ class SalamandersEventView(discord.ui.View):
     )
     async def btn_patrol(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Show confirmation modal for Patrol event."""
+        # CRITICAL: Check if there's an active event BEFORE showing confirmation
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(self.bot)
+        
+        if event_panel_cog is None:
+            logger.error("Event panel cog not found! Cannot check for active events.")
+            await interaction.response.send_message(
+                "❌ Internal error: Event panel system not available.",
+                ephemeral=True
+            )
+            return
+        
+        if event_panel_cog.is_event_active():
+            active_info = event_panel_cog.get_active_event_info()
+            logger.warning(f"🚫 BLOCKED Patrol event posting attempt - Active event: {active_info}")
+            error_msg = (
+                "❌ **There is already an active event!**\n\n"
+                f"{active_info}\n\n"
+                "You must end the current event before posting a new one. "
+                "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+            )
+            await interaction.response.send_message(error_msg, ephemeral=True)
+            return
+        
+        # No active event - proceed with confirmation
         view = PatrolConfirmationView(self.bot, event_key="patrol")
         embed = discord.Embed(
             title="Confirming Process",
@@ -310,7 +765,38 @@ class SalamandersEventView(discord.ui.View):
         row=0
     )
     async def btn_combat_training(self, interaction: discord.Interaction, _: discord.ui.Button):
-        await self._dispatch(interaction, "combat_training")
+        """Open modal for Combat Training event (description required, link optional)."""
+        # Check if there's an active event
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(self.bot)
+        
+        if event_panel_cog is None:
+            logger.error("Event panel cog not found! Cannot check for active events.")
+            await interaction.response.send_message(
+                "❌ Internal error: Event panel system not available.",
+                ephemeral=True
+            )
+            return
+        
+        if event_panel_cog.is_event_active():
+            active_info = event_panel_cog.get_active_event_info()
+            logger.warning(f"Blocked event posting attempt: combat_training - Active event: {active_info}")
+            error_msg = (
+                "❌ **There is already an active event!**\n\n"
+                f"{active_info}\n\n"
+                "You must end the current event before posting a new one. "
+                "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+            )
+            await interaction.response.send_message(error_msg, ephemeral=True)
+            return
+        
+        # Open modal directly (description is required)
+        modal = CombatTrainingModal(
+            bot=self.bot,
+            event_key="combat_training",
+            host_user=interaction.user
+        )
+        await interaction.response.send_modal(modal)
     
     @discord.ui.button(
         label="Basic Training",
@@ -319,7 +805,38 @@ class SalamandersEventView(discord.ui.View):
         row=0
     )
     async def btn_basic_training(self, interaction: discord.Interaction, _: discord.ui.Button):
-        await self._dispatch(interaction, "basic_training")
+        """Open modal for Basic Training event (description required, link required)."""
+        # Check if there's an active event
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(self.bot)
+        
+        if event_panel_cog is None:
+            logger.error("Event panel cog not found! Cannot check for active events.")
+            await interaction.response.send_message(
+                "❌ Internal error: Event panel system not available.",
+                ephemeral=True
+            )
+            return
+        
+        if event_panel_cog.is_event_active():
+            active_info = event_panel_cog.get_active_event_info()
+            logger.warning(f"Blocked event posting attempt: basic_training - Active event: {active_info}")
+            error_msg = (
+                "❌ **There is already an active event!**\n\n"
+                f"{active_info}\n\n"
+                "You must end the current event before posting a new one. "
+                "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+            )
+            await interaction.response.send_message(error_msg, ephemeral=True)
+            return
+        
+        # Open modal directly (description and link are required)
+        modal = BasicTrainingModal(
+            bot=self.bot,
+            event_key="basic_training",
+            host_user=interaction.user
+        )
+        await interaction.response.send_modal(modal)
     
     # Row 1: RED (raids & rally)
     @discord.ui.button(
@@ -329,7 +846,38 @@ class SalamandersEventView(discord.ui.View):
         row=1
     )
     async def btn_internal_raid(self, interaction: discord.Interaction, _: discord.ui.Button):
-        await self._dispatch(interaction, "internal_raid")
+        """Open modal for Internal Practice Raid event (description required, link required)."""
+        # Check if there's an active event
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(self.bot)
+        
+        if event_panel_cog is None:
+            logger.error("Event panel cog not found! Cannot check for active events.")
+            await interaction.response.send_message(
+                "❌ Internal error: Event panel system not available.",
+                ephemeral=True
+            )
+            return
+        
+        if event_panel_cog.is_event_active():
+            active_info = event_panel_cog.get_active_event_info()
+            logger.warning(f"Blocked event posting attempt: internal_raid - Active event: {active_info}")
+            error_msg = (
+                "❌ **There is already an active event!**\n\n"
+                f"{active_info}\n\n"
+                "You must end the current event before posting a new one. "
+                "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+            )
+            await interaction.response.send_message(error_msg, ephemeral=True)
+            return
+        
+        # Open modal directly
+        modal = InternalRaidModal(
+            bot=self.bot,
+            event_key="internal_raid",
+            host_user=interaction.user
+        )
+        await interaction.response.send_modal(modal)
     
     @discord.ui.button(
         label="Practice Raid",
@@ -338,7 +886,38 @@ class SalamandersEventView(discord.ui.View):
         row=1
     )
     async def btn_practice_raid(self, interaction: discord.Interaction, _: discord.ui.Button):
-        await self._dispatch(interaction, "practice_raid")
+        """Open modal for Practice Raid event (description required, link required)."""
+        # Check if there's an active event
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(self.bot)
+        
+        if event_panel_cog is None:
+            logger.error("Event panel cog not found! Cannot check for active events.")
+            await interaction.response.send_message(
+                "❌ Internal error: Event panel system not available.",
+                ephemeral=True
+            )
+            return
+        
+        if event_panel_cog.is_event_active():
+            active_info = event_panel_cog.get_active_event_info()
+            logger.warning(f"Blocked event posting attempt: practice_raid - Active event: {active_info}")
+            error_msg = (
+                "❌ **There is already an active event!**\n\n"
+                f"{active_info}\n\n"
+                "You must end the current event before posting a new one. "
+                "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+            )
+            await interaction.response.send_message(error_msg, ephemeral=True)
+            return
+        
+        # Open modal directly
+        modal = PracticeRaidModal(
+            bot=self.bot,
+            event_key="practice_raid",
+            host_user=interaction.user
+        )
+        await interaction.response.send_modal(modal)
     
     @discord.ui.button(
         label="Rally",
@@ -347,7 +926,38 @@ class SalamandersEventView(discord.ui.View):
         row=1
     )
     async def btn_rally(self, interaction: discord.Interaction, _: discord.ui.Button):
-        await self._dispatch(interaction, "rally")
+        """Open modal for Rally event (description required, link required)."""
+        # Check if there's an active event
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(self.bot)
+        
+        if event_panel_cog is None:
+            logger.error("Event panel cog not found! Cannot check for active events.")
+            await interaction.response.send_message(
+                "❌ Internal error: Event panel system not available.",
+                ephemeral=True
+            )
+            return
+        
+        if event_panel_cog.is_event_active():
+            active_info = event_panel_cog.get_active_event_info()
+            logger.warning(f"Blocked event posting attempt: rally - Active event: {active_info}")
+            error_msg = (
+                "❌ **There is already an active event!**\n\n"
+                f"{active_info}\n\n"
+                "You must end the current event before posting a new one. "
+                "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+            )
+            await interaction.response.send_message(error_msg, ephemeral=True)
+            return
+        
+        # Open modal directly
+        modal = RallyModal(
+            bot=self.bot,
+            event_key="rally",
+            host_user=interaction.user
+        )
+        await interaction.response.send_modal(modal)
     
     # Row 2: GREY (custom)
     @discord.ui.button(
@@ -357,10 +967,44 @@ class SalamandersEventView(discord.ui.View):
         row=2
     )
     async def btn_custom(self, interaction: discord.Interaction, _: discord.ui.Button):
-        await interaction.response.send_message(
-            "🛠️ Custom event coming soon (we'll open a modal to collect title/time/location).",
-            ephemeral=True
+        """Open modal for custom event with title selection/input."""
+        # Check if there's an active event
+        from cogs.event_buttons import get_event_panel_cog
+        event_panel_cog = get_event_panel_cog(self.bot)
+        
+        if event_panel_cog is None:
+            logger.error("Event panel cog not found! Cannot check for active events.")
+            await interaction.response.send_message(
+                "❌ Internal error: Event panel system not available.",
+                ephemeral=True
+            )
+            return
+        
+        if event_panel_cog.is_event_active():
+            active_info = event_panel_cog.get_active_event_info()
+            logger.warning(f"Blocked custom event posting attempt - Active event: {active_info}")
+            error_msg = (
+                "❌ **There is already an active event!**\n\n"
+                f"{active_info}\n\n"
+                "You must end the current event before posting a new one. "
+                "Please find the **End** button in the event-publishing channel and click it to finalize the ongoing event."
+            )
+            await interaction.response.send_message(error_msg, ephemeral=True)
+            return
+        
+        # Create view with title selection options
+        view = CustomEventTitleView(self.bot, interaction.user)
+        embed = discord.Embed(
+            title="Custom Event",
+            description=(
+                "Choose a preset title or enter a custom one.\n\n"
+                "**Format required:** ++ Your Title ++\n"
+                "**Example:** ++ Gamenight ++\n\n"
+                "The ++ ++ symbols are mandatory around the text."
+            ),
+            color=discord.Color.greyple()
         )
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
     
     async def _dispatch(self, interaction: discord.Interaction, key: str):
         """Dispatch event announcement based on preset key."""
@@ -397,6 +1041,7 @@ class SalamandersEventView(discord.ui.View):
             interaction=interaction,
             event_key=key,
             custom_description=None,
+            custom_link=None,
             host_user=interaction.user
         )
 
@@ -558,7 +1203,7 @@ async def setup(bot: commands.Bot):
     
     # Post panel automatically when bot is ready
     # We'll hook into on_ready via the main bot file
-    logger.info("✅ Salamanders Event Panel cog loaded")
+    logger.info("Salamanders Event Panel cog loaded")
 
 
 def get_event_panel_cog(bot: commands.Bot) -> SalamandersEventPanel | None:

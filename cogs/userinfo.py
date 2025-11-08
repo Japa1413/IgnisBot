@@ -75,6 +75,7 @@ class UserInfoCog(commands.Cog):
     @cmd_channel_only(USERINFO_CHANNEL_ID)  # prefix/hybrid guard
     @appcmd_channel_only(USERINFO_CHANNEL_ID)  # slash guard
     async def userinfo(self, ctx: commands.Context, member: discord.Member | None = None):
+        """Display user information with progression data."""
         if ctx.guild is None:
             await ctx.reply("This command must be used in a server.", mention_author=False)
             return

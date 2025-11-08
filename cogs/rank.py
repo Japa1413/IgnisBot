@@ -64,6 +64,7 @@ MORTALS = [
 ]
 
 # Final priority list (lowest -> highest). We'll pick the HIGHEST present.
+# This can be overridden by config service
 ROLE_PRIORITY: List[str] = (
     MORTALS
     + LEGIONARIES
@@ -72,6 +73,17 @@ ROLE_PRIORITY: List[str] = (
     + GREAT_COMPANY
     + HIGH_COMMAND
 )
+
+# Try to load priority from config service
+try:
+    from services.config_service import get_config_service
+    config_service = get_config_service()
+    config_priority = config_service.get_role_priority()
+    if config_priority:
+        ROLE_PRIORITY = config_priority
+except Exception:
+    # Use default if config service fails
+    pass
 
 # fast membership set
 ALL_RANKS_SET = set(ROLE_PRIORITY)

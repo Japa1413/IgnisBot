@@ -16,10 +16,10 @@ def check_documentation():
     docs_dir = root_dir / "docs"
     
     if not docs_dir.exists():
-        print("❌ Diretório docs/ não encontrado")
+        print("[ERRO] Diretorio docs/ nao encontrado")
         return 1
     
-    print("🔍 Validando estrutura de documentação...")
+    print("[VALIDACAO] Validando estrutura de documentacao...")
     print()
     
     issues = validate_structure(docs_dir)
@@ -28,7 +28,7 @@ def check_documentation():
     # Verificar documentos órfãos
     orphans = find_orphan_docs(root_dir)
     if orphans:
-        print(f"❌ Documentos fora do lugar ({len(orphans)}):")
+        print(f"[ERRO] Documentos fora do lugar ({len(orphans)}):")
         for orphan in orphans:
             print(f"   - {orphan.relative_to(root_dir)}")
         errors_found = True
@@ -36,13 +36,13 @@ def check_documentation():
     
     # Verificar READMEs faltando
     if issues["missing_readme"]:
-        print(f"⚠️ README.md faltando ({len(issues['missing_readme'])}):")
+        print(f"[WARN] README.md faltando ({len(issues['missing_readme'])}):")
         for cat in issues["missing_readme"]:
             print(f"   - {cat}")
         print()
     
     if not errors_found:
-        print("✅ Documentação organizada corretamente!")
+        print("[OK] Documentacao organizada corretamente!")
         return 0
     else:
         print("💡 Execute 'python scripts/organizar_documentacao.py' para organizar automaticamente")

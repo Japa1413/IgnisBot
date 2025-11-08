@@ -366,5 +366,5 @@ class MemberActivityLogCog(commands.Cog):
 async def setup(bot: commands.Bot):
     """Load the member activity log cog"""
     await bot.add_cog(MemberActivityLogCog(bot))
-    logger.info("✅ Member Activity Log handler loaded (voice & member join/leave monitoring active)")
+    logger.info("Member Activity Log handler loaded (voice & member join/leave monitoring active)")
 
