@@ -29,13 +29,14 @@ logs/
 .git/
 .gitignore
 
-# Documentation
+# Documentation (keep README)
 docs/
 *.md
 !README.md
 
-# Scripts (not needed in container)
-scripts/
+# Scripts (not needed in container, but keep __init__.py if exists)
+scripts/*
+!scripts/__init__.py
 
 # Test files
 tests/

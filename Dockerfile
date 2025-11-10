@@ -43,8 +43,10 @@ COPY --chown=ignisbot:ignisbot . .
 # Switch to non-root user
 USER ignisbot
 
-# Add local bin to PATH
+# Add local bin to PATH and set PYTHONPATH
 ENV PATH=/home/ignisbot/.local/bin:$PATH
+ENV PYTHONPATH=/app:$PYTHONPATH
+ENV PYTHONUNBUFFERED=1
 
 # Expose port (if needed for health checks)
 EXPOSE 8080
