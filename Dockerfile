@@ -41,6 +41,13 @@ COPY --from=builder /root/.local /home/ignisbot/.local
 # Copy everything except what's in .dockerignore
 COPY --chown=ignisbot:ignisbot . .
 
+# Verify files were copied (debug step - will show in build logs)
+RUN ls -la /app/ && \
+    ls -la /app/utils/ && \
+    test -f /app/utils/config.py && echo "✓ utils/config.py exists" || echo "✗ utils/config.py MISSING" && \
+    test -f /app/utils/__init__.py && echo "✓ utils/__init__.py exists" || echo "✗ utils/__init__.py MISSING" && \
+    test -f /app/ignis_main.py && echo "✓ ignis_main.py exists" || echo "✗ ignis_main.py MISSING"
+
 # Switch to non-root user
 USER ignisbot
 
