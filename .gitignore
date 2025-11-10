@@ -42,6 +42,10 @@ venv.bak/
 .env.local
 .env.*.local
 
+# Railway Variables (contém informações sensíveis)
+RAILWAY_VARIABLES.txt
+RAILWAY_VARIABLES.json
+
 # Logs
 *.log
 logs/
