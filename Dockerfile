@@ -48,13 +48,6 @@ ENV PATH=/home/ignisbot/.local/bin:$PATH
 ENV PYTHONPATH=/app:$PYTHONPATH
 ENV PYTHONUNBUFFERED=1
 
-# Expose port (if needed for health checks)
-EXPOSE 8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import sys; sys.exit(0)" || exit 1
-
 # Run the bot
 CMD ["python", "ignis_main.py"]
 
