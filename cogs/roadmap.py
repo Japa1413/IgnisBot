@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 ROADMAP_CHANNEL_ID = 1375941285839638536
 
 # Salamanders role ID to mention
-SALAMANDERS_ROLE_ID = 1435800430516113511
+SALAMANDERS_ROLE_ID = 1376831480931815424
 
 # Salamanders footer icon
 SALAMANDERS_FOOTER_ICON = "https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
@@ -133,8 +133,8 @@ class RoadmapCog(commands.Cog):
                 icon_url=SALAMANDERS_FOOTER_ICON
             )
             
-            # Send the embed with role mention
-            await roadmap_channel.send(content=role_mention, embed=embed)
+            # Send the embed (without role mention to avoid mass pings)
+            await roadmap_channel.send(embed=embed)
             
             # Send confirmation to command executor
             await interaction.followup.send(
@@ -154,9 +154,32 @@ class RoadmapCog(commands.Cog):
                 ephemeral=True
             )
     
-    async def _post_roadmap_automatically(self) -> bool:
+    async def _check_if_message_exists(self, channel: discord.TextChannel, title: str) -> bool:
+        """
+        Check if a message with the same title already exists in the channel.
+        
+        Returns:
+            True if message exists, False otherwise
+        """
+        try:
+            # Check last 20 messages to avoid duplicates
+            async for message in channel.history(limit=20):
+                if message.author == self.bot.user and message.embeds:
+                    for embed in message.embeds:
+                        if embed.title and title in embed.title:
+                            logger.debug(f"[ROADMAP] Found existing message with title: {embed.title}")
+                            return True
+        except Exception as e:
+            logger.warning(f"[ROADMAP] Error checking channel history: {e}")
+        
+        return False
+    
+    async def _post_roadmap_automatically(self, force_post: bool = False) -> bool:
         """
         Post roadmap update automatically based on documentation.
+        
+        Args:
+            force_post: If True, post even if hash hasn't changed (for startup)
         
         Returns:
             True if posted, False otherwise
@@ -165,20 +188,39 @@ class RoadmapCog(commands.Cog):
             # Get roadmap data from documentation
             roadmap_data = get_latest_roadmap_data()
             
-            # Create hash of the roadmap data to detect changes
-            data_string = f"{roadmap_data['title']}{roadmap_data['description']}{len(roadmap_data['features'])}{len(roadmap_data['fixes'])}{len(roadmap_data['upcoming'])}"
-            current_hash = hashlib.md5(data_string.encode()).hexdigest()
+            # Use the comprehensive hash from parser
+            current_hash = roadmap_data.get('content_hash', '')
             
-            # Check if roadmap has changed since last post
-            if current_hash == self.last_roadmap_hash:
-                logger.debug("[ROADMAP] No changes detected, skipping auto-post")
-                return False
+            # If no hash, create one from data
+            if not current_hash:
+                data_string = f"{roadmap_data['title']}{roadmap_data['description']}{len(roadmap_data['features'])}{len(roadmap_data['fixes'])}{len(roadmap_data['upcoming'])}"
+                current_hash = hashlib.md5(data_string.encode()).hexdigest()
             
-            # Get the roadmap channel
+            # Get the roadmap channel first to check for duplicates
             roadmap_channel = self.bot.get_channel(ROADMAP_CHANNEL_ID)
             if not isinstance(roadmap_channel, discord.TextChannel):
                 logger.error(f"[ROADMAP] Channel {ROADMAP_CHANNEL_ID} not found")
                 return False
+            
+            # Check if message with same title already exists
+            if await self._check_if_message_exists(roadmap_channel, roadmap_data['title']):
+                logger.info(f"[ROADMAP] Message with title '{roadmap_data['title']}' already exists, skipping to avoid duplicate")
+                # Update hash to prevent repeated checks
+                self.last_roadmap_hash = current_hash
+                return False
+            
+            # Check if roadmap has changed since last post (unless forced)
+            if not force_post and current_hash == self.last_roadmap_hash:
+                logger.debug(f"[ROADMAP] No changes detected (hash: {current_hash[:8]}...), skipping auto-post")
+                return False
+            
+            # If forced post but content is same, generate unique content
+            if force_post and current_hash == self.last_roadmap_hash:
+                # Add timestamp to make it unique
+                roadmap_data['title'] = f"{roadmap_data['title']} - {datetime.now(timezone.utc).strftime('%H:%M UTC')}"
+                logger.info(f"[ROADMAP] Force post with same content, adding timestamp to title")
+            
+            logger.info(f"[ROADMAP] Posting roadmap update. Old hash: {self.last_roadmap_hash[:8] if self.last_roadmap_hash else 'None'}..., New hash: {current_hash[:8]}...")
             
             # Get Salamanders role
             guild = roadmap_channel.guild
@@ -188,7 +230,7 @@ class RoadmapCog(commands.Cog):
             salamanders_role = guild.get_role(SALAMANDERS_ROLE_ID)
             role_mention = salamanders_role.mention if salamanders_role else "@Salamanders"
             
-            # Create embed
+            # Create embed with unique identifier in footer to prevent duplicates
             embed = discord.Embed(
                 title=f"🚀 {roadmap_data['title']}",
                 description=roadmap_data['description'],
@@ -196,25 +238,40 @@ class RoadmapCog(commands.Cog):
                 timestamp=datetime.now(timezone.utc)
             )
             
-            # Add sections if available
-            if roadmap_data['features']:
+            # Add sections if available (only if they have content)
+            features_text = format_roadmap_items(roadmap_data['features']) if roadmap_data['features'] else None
+            fixes_text = format_roadmap_items(roadmap_data['fixes']) if roadmap_data['fixes'] else None
+            upcoming_text = format_roadmap_items(roadmap_data['upcoming']) if roadmap_data['upcoming'] else None
+            
+            # Only add fields if they have meaningful content
+            if features_text and features_text != "None":
                 embed.add_field(
                     name="✨ New Features",
-                    value=format_roadmap_items(roadmap_data['features']),
+                    value=features_text,
                     inline=False
                 )
             
-            if roadmap_data['fixes']:
+            if fixes_text and fixes_text != "None":
                 embed.add_field(
                     name="🔧 Fixes & Improvements",
-                    value=format_roadmap_items(roadmap_data['fixes']),
+                    value=fixes_text,
                     inline=False
                 )
             
-            if roadmap_data['upcoming']:
+            if upcoming_text and upcoming_text != "None":
                 embed.add_field(
                     name="📋 Upcoming",
-                    value=format_roadmap_items(roadmap_data['upcoming']),
+                    value=upcoming_text,
+                    inline=False
+                )
+            
+            # If no meaningful content, add a note
+            if not any([features_text and features_text != "None", 
+                       fixes_text and fixes_text != "None", 
+                       upcoming_text and upcoming_text != "None"]):
+                embed.add_field(
+                    name="ℹ️ Status",
+                    value="Development continues with ongoing improvements. Check documentation for details.",
                     inline=False
                 )
             
@@ -224,27 +281,32 @@ class RoadmapCog(commands.Cog):
                 icon_url=SALAMANDERS_FOOTER_ICON
             )
             
-            # Post the embed
-            await roadmap_channel.send(content=role_mention, embed=embed)
+            # Post the embed (without role mention to avoid mass pings)
+            await roadmap_channel.send(embed=embed)
             
             # Update tracking
             self.last_roadmap_post = datetime.now(timezone.utc)
             self.last_roadmap_hash = current_hash
             
-            logger.info(f"[ROADMAP] Auto-posted roadmap update: {roadmap_data['title']}")
+            logger.info(
+                f"[ROADMAP] ✅ Auto-posted roadmap update: {roadmap_data['title']}\n"
+                f"  Features: {len(roadmap_data['features'])}, "
+                f"Fixes: {len(roadmap_data['fixes'])}, "
+                f"Upcoming: {len(roadmap_data['upcoming'])}"
+            )
             return True
             
         except Exception as e:
             logger.error(f"[ROADMAP] Error auto-posting roadmap: {e}", exc_info=True)
             return False
     
-    @tasks.loop(hours=6)  # Check every 6 hours
+    @tasks.loop(hours=2)  # Check every 2 hours (reduced from 6 for faster updates)
     async def auto_post_roadmap(self):
         """Automatically post roadmap updates based on documentation changes."""
         if not self.bot.is_ready():
             return
         
-        logger.info("[ROADMAP] Checking for roadmap updates...")
+        logger.info("[ROADMAP] 🔍 Checking for roadmap updates...")
         posted = await self._post_roadmap_automatically()
         
         if posted:
@@ -265,14 +327,18 @@ class RoadmapCog(commands.Cog):
     
     @commands.Cog.listener()
     async def on_ready(self):
-        """Post roadmap on bot startup if documentation has changed."""
+        """Post roadmap on bot startup - always post with latest information."""
         # Wait a bit for everything to initialize
-        await asyncio.sleep(60)  # Wait 1 minute after ready
+        await asyncio.sleep(30)  # Wait 30 seconds after ready
         
-        # Post initial roadmap if it's the first time or if documentation changed
-        if self.last_roadmap_hash is None:
-            logger.info("[ROADMAP] Posting initial roadmap on startup...")
-            await self._post_roadmap_automatically()
+        # Always post on startup (force_post=True) to ensure latest info is shared
+        logger.info("[ROADMAP] Posting roadmap update on startup (forced)...")
+        posted = await self._post_roadmap_automatically(force_post=True)
+        
+        if posted:
+            logger.info("[ROADMAP] ✅ Roadmap update posted on startup")
+        else:
+            logger.info("[ROADMAP] Roadmap update skipped (duplicate or no changes)")
 
 
 async def setup(bot: commands.Bot):

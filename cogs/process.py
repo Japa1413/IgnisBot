@@ -13,11 +13,15 @@ import discord
 from discord.ext import commands, tasks
 from discord import app_commands
 from datetime import datetime, timezone, timedelta
+from io import BytesIO
 
 from services.bloxlink_service import BloxlinkService
+from services.roblox_groups_service import get_roblox_groups_service, AOW_GROUP_IDS
+from services.roblox_outfits_service import get_roblox_outfits_service
 from services.audit_service import AuditService
+from services.progression_service import ProgressionService
 from utils.checks import appcmd_channel_only, appcmd_moderator_or_owner
-from utils.config import GUILD_ID
+from utils.config import GUILD_ID, ROBLOX_COOKIE
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -33,14 +37,387 @@ SALAMANDERS_GREEN = 0x2ECC71
 SALAMANDERS_DARK_GREEN = 0x27AE60
 SALAMANDERS_RED = 0xE74C3C
 
+# Channel ID for verify command mention
+VERIFY_CHANNEL_ID = 1375941286267326532
+
+
+class InductionConfirmationView(discord.ui.View):
+    """View with Confirm and Cancel buttons for induction process"""
+    
+    def __init__(self, roblox_username: str, roblox_id: int, is_in_group: bool, has_pending_request: bool):
+        super().__init__(timeout=300)  # 5 minutes timeout
+        self.roblox_username = roblox_username
+        self.roblox_id = roblox_id
+        self.is_in_group = is_in_group
+        self.has_pending_request = has_pending_request
+    
+    @discord.ui.button(label="Confirm", style=discord.ButtonStyle.success, row=0)
+    async def confirm_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Confirm button - proceeds with induction process"""
+        await interaction.response.defer(ephemeral=False)
+        
+        # Disable buttons
+        for item in self.children:
+            item.disabled = True
+        await interaction.edit_original_response(view=self)
+        
+        # Clear previous button messages
+        if interaction.channel and isinstance(interaction.channel, discord.TextChannel):
+            await self._clear_previous_button_messages(interaction.channel, interaction.client.user)
+        
+        # Proceed with induction process
+        await self._execute_induction_process(interaction)
+    
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.danger, row=0)
+    async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Cancel button - cancels the operation"""
+        await interaction.response.defer(ephemeral=False)
+        
+        # Disable buttons
+        for item in self.children:
+            item.disabled = True
+        await interaction.edit_original_response(view=self)
+        
+        # Send cancellation message
+        cancel_embed = discord.Embed(
+            title="Operation Cancelled",
+            description=f"The induction process for **{self.roblox_username}** has been cancelled.",
+            color=SALAMANDERS_RED,
+            timestamp=discord.utils.utcnow()
+        )
+        cancel_embed.set_footer(
+            text="Age of Warfare • Process System",
+            icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+        )
+        
+        await interaction.followup.send(embed=cancel_embed)
+        logger.info(f"[INDUCTION] Process cancelled for {self.roblox_username}")
+    
+    async def _clear_previous_button_messages(self, channel: discord.TextChannel, bot_user: discord.ClientUser):
+        """Clear previous button messages from this view"""
+        try:
+            async for message in channel.history(limit=10):
+                if message.author == bot_user and message.embeds:
+                    for embed in message.embeds:
+                        if "Induction Process Confirmation" in embed.title or "Operation Cancelled" in embed.title:
+                            try:
+                                await message.delete()
+                            except:
+                                pass
+        except Exception as e:
+            logger.warning(f"[INDUCTION] Error clearing messages: {e}")
+    
+    async def _execute_induction_process(self, interaction: discord.Interaction):
+        """Execute the actual induction process"""
+        try:
+            # Get services
+            groups_service = get_roblox_groups_service()
+            progression_service = ProgressionService()
+            audit_service = AuditService()
+            
+            # Main group for accepting requests: 6340169
+            # Secondary group for rank change: 6496437
+            MAIN_GROUP_ID = 6340169  # Group to accept user
+            RANK_CHANGE_GROUP_ID = 6496437  # Group to change rank from 238 to 240
+            
+            if self.is_in_group:
+                # User is already in main group, proceed to rank change
+                logger.info(f"[INDUCTION] User {self.roblox_username} is already in main group, proceeding to rank change")
+            else:
+                # Step 1: Accept user to main group (NO rank change, just accept)
+                # We try to accept directly - the API will return a clear error if there's no pending request
+                logger.info(f"[INDUCTION] Attempting to accept user {self.roblox_username} (ID: {self.roblox_id}) to group {MAIN_GROUP_ID}")
+                accept_result = await groups_service.accept_user_to_group(
+                    group_id=MAIN_GROUP_ID,
+                    roblox_user_id=self.roblox_id,
+                    roblox_cookie=ROBLOX_COOKIE
+                )
+                
+                if not accept_result.get("success"):
+                    # Check if it's a "no pending request" error
+                    error_message = accept_result.get('message', 'Unknown error')
+                    error_type = accept_result.get('error', '')
+                    
+                    # If it's a 404 or "no pending request" error, show helpful message
+                    if "404" in error_type or "no pending request" in error_message.lower() or "does not have a pending" in error_message.lower():
+                        error_embed = discord.Embed(
+                            title="No Pending Request",
+                            description=f"User **{self.roblox_username}** does not have a pending join request for the group (ID: {MAIN_GROUP_ID}).",
+                            color=discord.Color.orange(),
+                            timestamp=discord.utils.utcnow()
+                        )
+                        error_embed.add_field(
+                            name="What to do",
+                            value=f"Please ask the user to request to join the group first:\nhttps://www.roblox.com/groups/{MAIN_GROUP_ID}",
+                            inline=False
+                        )
+                        error_embed.set_footer(
+                            text="Age of Warfare • Process System",
+                            icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+                        )
+                        await interaction.followup.send(embed=error_embed)
+                        logger.warning(f"[INDUCTION] User {self.roblox_username} does not have pending request: {error_message}")
+                        return
+                    else:
+                        # Other errors (authentication, permission, etc.)
+                        error_embed = discord.Embed(
+                            title="Error Accepting User",
+                            description=f"Could not accept user to group: {error_message}",
+                            color=SALAMANDERS_RED,
+                            timestamp=discord.utils.utcnow()
+                        )
+                        error_embed.set_footer(
+                            text="Age of Warfare • Process System",
+                            icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+                        )
+                        await interaction.followup.send(embed=error_embed)
+                        logger.error(f"[INDUCTION] Failed to accept user: {error_type}")
+                        return
+                
+                logger.info(f"[INDUCTION] User accepted to main group: {accept_result.get('message')}")
+            
+            # Step 2: Change rank in secondary group (6496437) from rank 238 to 240
+            logger.info(f"[INDUCTION] Fetching roles for rank change group {RANK_CHANGE_GROUP_ID}")
+            rank_change_roles = await groups_service.get_group_roles(RANK_CHANGE_GROUP_ID)
+            
+            if not rank_change_roles:
+                error_embed = discord.Embed(
+                    title="Error",
+                    description="Could not fetch roles for rank change group. Please try again later.",
+                    color=SALAMANDERS_RED,
+                    timestamp=discord.utils.utcnow()
+                )
+                error_embed.set_footer(
+                    text="Age of Warfare • Process System",
+                    icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+                )
+                await interaction.followup.send(embed=error_embed)
+                logger.error(f"[INDUCTION] Could not fetch roles for group {RANK_CHANGE_GROUP_ID}")
+                return
+            
+            # Find role with rank 240
+            target_role = None
+            target_role_id = None
+            
+            for role in rank_change_roles:
+                if role.get("rank") == 240:
+                    target_role = role.get("name")
+                    target_role_id = role.get("id")
+                    break
+            
+            if not target_role_id:
+                error_embed = discord.Embed(
+                    title="Error",
+                    description=f"Could not find role with rank 240 in group {RANK_CHANGE_GROUP_ID}. Please contact an administrator.",
+                    color=SALAMANDERS_RED,
+                    timestamp=discord.utils.utcnow()
+                )
+                error_embed.set_footer(
+                    text="Age of Warfare • Process System",
+                    icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+                )
+                await interaction.followup.send(embed=error_embed)
+                logger.error(f"[INDUCTION] Could not find role with rank 240 in group {RANK_CHANGE_GROUP_ID}")
+                return
+            
+            logger.info(f"[INDUCTION] Target role for rank change: {target_role} (ID: {target_role_id}, Rank: 240)")
+            
+            # Check if user is in the rank change group
+            is_in_rank_group = await groups_service.is_user_in_group(self.roblox_id, RANK_CHANGE_GROUP_ID)
+            
+            if not is_in_rank_group:
+                error_embed = discord.Embed(
+                    title="Error",
+                    description=f"User **{self.roblox_username}** is not a member of the rank change group (ID: {RANK_CHANGE_GROUP_ID}). Please ensure the user is in this group first.",
+                    color=SALAMANDERS_RED,
+                    timestamp=discord.utils.utcnow()
+                )
+                error_embed.set_footer(
+                    text="Age of Warfare • Process System",
+                    icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+                )
+                await interaction.followup.send(embed=error_embed)
+                logger.error(f"[INDUCTION] User {self.roblox_username} is not in rank change group {RANK_CHANGE_GROUP_ID}")
+                return
+            
+            # Check current rank in the rank change group
+            current_rank_info = await groups_service.get_user_rank_in_group(self.roblox_id, RANK_CHANGE_GROUP_ID)
+            current_rank = current_rank_info.get("rank", 0) if current_rank_info else 0
+            
+            if current_rank == 240:
+                # User already has rank 240
+                info_embed = discord.Embed(
+                    title="Rank Already Set",
+                    description=f"User **{self.roblox_username}** already has rank 240 in the rank change group.",
+                    color=SALAMANDERS_GREEN,
+                    timestamp=discord.utils.utcnow()
+                )
+                info_embed.add_field(name="Current Rank", value=f"240 ({current_rank_info.get('role', 'Unknown')})", inline=True)
+                info_embed.set_footer(
+                    text="Age of Warfare • Process System",
+                    icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+                )
+                await interaction.followup.send(embed=info_embed)
+                logger.info(f"[INDUCTION] User {self.roblox_username} already has rank 240")
+                return
+            
+            # Change rank from 238 to 240
+            logger.info(f"[INDUCTION] Changing rank from {current_rank} to 240 for user {self.roblox_username} in group {RANK_CHANGE_GROUP_ID}")
+            rank_change_result = await groups_service.set_user_rank(
+                group_id=RANK_CHANGE_GROUP_ID,
+                roblox_user_id=self.roblox_id,
+                role_id=target_role_id,
+                roblox_cookie=ROBLOX_COOKIE
+            )
+            
+            if not rank_change_result.get("success"):
+                error_embed = discord.Embed(
+                    title="Error Changing Rank",
+                    description=f"Could not change user rank: {rank_change_result.get('message', 'Unknown error')}",
+                    color=SALAMANDERS_RED,
+                    timestamp=discord.utils.utcnow()
+                )
+                error_embed.add_field(name="Current Rank", value=str(current_rank), inline=True)
+                error_embed.add_field(name="Target Rank", value="240", inline=True)
+                error_embed.set_footer(
+                    text="Age of Warfare • Process System",
+                    icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+                )
+                await interaction.followup.send(embed=error_embed)
+                logger.error(f"[INDUCTION] Failed to change rank: {rank_change_result.get('error')}")
+                return
+            
+            logger.info(f"[INDUCTION] Rank changed successfully: {rank_change_result.get('message')}")
+            
+            # Step 3: Get group names for display
+            main_group_info = await groups_service.get_group_info(MAIN_GROUP_ID)
+            rank_group_info = await groups_service.get_group_info(RANK_CHANGE_GROUP_ID)
+            
+            main_group_name = main_group_info.get("name", f"Group {MAIN_GROUP_ID}") if main_group_info else f"Group {MAIN_GROUP_ID}"
+            rank_group_name = rank_group_info.get("name", f"Group {RANK_CHANGE_GROUP_ID}") if rank_group_info else f"Group {RANK_CHANGE_GROUP_ID}"
+            
+            # Step 4: Update Ignis database
+            # Set rank based on the rank change (rank 240 role name) and path to "legionary"
+            logger.info(f"[INDUCTION] Updating Ignis database for user {interaction.user.id}")
+            try:
+                # Use the target role name from rank change as the rank
+                await progression_service.set_rank(
+                    user_id=interaction.user.id,
+                    rank=target_role,
+                    path="legionary",
+                    set_by=interaction.user.id
+                )
+                
+                # Log the operation
+                await audit_service.log_operation(
+                    user_id=interaction.user.id,
+                    action_type="CREATE",
+                    data_type="induction",
+                    performed_by=interaction.user.id,
+                    purpose="Induction process completed - user accepted to Roblox group and rank changed",
+                    details={
+                        "roblox_username": self.roblox_username,
+                        "roblox_id": self.roblox_id,
+                        "main_group_id": MAIN_GROUP_ID,
+                        "rank_change_group_id": RANK_CHANGE_GROUP_ID,
+                        "target_role": target_role,
+                        "target_role_id": target_role_id,
+                        "rank_change": f"{current_rank} -> 240",
+                        "path": "legionary"
+                    }
+                )
+                
+                logger.info(f"[INDUCTION] Database updated successfully for user {interaction.user.id}")
+            except Exception as e:
+                logger.error(f"[INDUCTION] Error updating database: {e}", exc_info=True)
+                # Continue anyway - group operations succeeded
+            
+            # Step 5: Get rank information for main group
+            main_group_rank_info = None
+            main_group_rank_name = "N/A"
+            if not self.is_in_group:
+                # User was just accepted, get their rank in main group
+                main_group_rank_info = await groups_service.get_user_rank_in_group(self.roblox_id, MAIN_GROUP_ID)
+                if main_group_rank_info:
+                    main_group_rank_name = main_group_rank_info.get("role", "N/A")
+            
+            # Step 6: Create unified success embed with all information
+            unified_embed = discord.Embed(
+                title="Induction Process Complete",
+                description=f"The induction process has been successfully completed for **{self.roblox_username}**.",
+                color=SALAMANDERS_GREEN,
+                timestamp=discord.utils.utcnow()
+            )
+            
+            # Groups section - unified display
+            groups_info = []
+            
+            # Main group information
+            if not self.is_in_group:
+                groups_info.append(f"✅ **{main_group_name}**\n   Status: Accepted\n   Rank: {main_group_rank_name}")
+            else:
+                # User was already in group, get current rank
+                if main_group_rank_info is None:
+                    main_group_rank_info = await groups_service.get_user_rank_in_group(self.roblox_id, MAIN_GROUP_ID)
+                if main_group_rank_info:
+                    main_group_rank_name = main_group_rank_info.get("role", "N/A")
+                groups_info.append(f"✅ **{main_group_name}**\n   Status: Already Member\n   Rank: {main_group_rank_name}")
+            
+            # Rank change group information
+            groups_info.append(f"✅ **{rank_group_name}**\n   Status: Rank Changed\n   Rank: {current_rank} → {target_role}")
+            
+            unified_embed.add_field(
+                name="Groups",
+                value="\n\n".join(groups_info),
+                inline=False
+            )
+            
+            # Final instruction
+            verify_channel = interaction.guild.get_channel(VERIFY_CHANNEL_ID)
+            if verify_channel:
+                unified_embed.add_field(
+                    name="Next Step",
+                    value=f"Please use the `/update` command in {verify_channel.mention} to complete the verification process.",
+                    inline=False
+                )
+            else:
+                unified_embed.add_field(
+                    name="Next Step",
+                    value="Please use the `/update` command in the verification channel to complete the verification process.",
+                    inline=False
+                )
+            
+            unified_embed.set_footer(
+                text="Age of Warfare • Process System",
+                icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+            )
+            
+            await interaction.followup.send(embed=unified_embed)
+            logger.info(f"[INDUCTION] ✅ Induction process completed successfully for {self.roblox_username}")
+            
+        except Exception as e:
+            logger.error(f"[INDUCTION] Error in induction process: {e}", exc_info=True)
+            error_embed = discord.Embed(
+                title="Error",
+                description=f"An error occurred during the induction process: {str(e)[:200]}",
+                color=SALAMANDERS_RED,
+                timestamp=discord.utils.utcnow()
+            )
+            error_embed.set_footer(
+                text="Age of Warfare • Process System",
+                icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+            )
+            await interaction.followup.send(embed=error_embed)
+
 
 class ProcessButtonsView(discord.ui.View):
     """View with buttons for the process embed"""
     
-    def __init__(self, roblox_username: str, roblox_id: int):
+    def __init__(self, roblox_username: str, roblox_id: int, main_embed_message_id: int = None):
         super().__init__(timeout=None)  # Persistent view
         self.roblox_username = roblox_username
         self.roblox_id = roblox_id
+        self.main_embed_message_id = main_embed_message_id  # ID of the main embed (to preserve it)
         
         # Add Profile Link as a link button (opens directly without permission)
         if self.roblox_id and self.roblox_id != "Unknown":
@@ -54,32 +431,518 @@ class ProcessButtonsView(discord.ui.View):
             )
             self.add_item(link_button)
     
+    async def _clear_previous_button_messages(self, channel: discord.TextChannel, bot_user: discord.ClientUser):
+        """Clear previous button messages, but keep the main embed"""
+        try:
+            if not channel:
+                return
+            
+            # Get bot member to check permissions
+            bot_member = channel.guild.get_member(bot_user.id)
+            if bot_member:
+                perms = channel.permissions_for(bot_member)
+                if not perms.manage_messages:
+                    logger.warning(f"[PROCESS] Bot doesn't have manage_messages permission in channel {channel.id}")
+                    return
+            
+            # Get recent messages from bot (last 50)
+            messages_to_delete = []
+            async for message in channel.history(limit=50):
+                # Skip the main embed message
+                if message.id == self.main_embed_message_id:
+                    continue
+                
+                # Only delete messages from the bot
+                if message.author == bot_user:
+                    messages_to_delete.append(message)
+            
+            # Delete messages in batches (Discord limit is 100)
+            if messages_to_delete:
+                # Delete in chunks of 100
+                for i in range(0, len(messages_to_delete), 100):
+                    chunk = messages_to_delete[i:i+100]
+                    try:
+                        await channel.delete_messages(chunk)
+                        logger.info(f"[PROCESS] Deleted {len(chunk)} previous button messages")
+                    except discord.HTTPException as e:
+                        logger.warning(f"[PROCESS] Could not delete some messages: {e}")
+                        # Try deleting individually if bulk delete fails
+                        for msg in chunk:
+                            try:
+                                await msg.delete()
+                            except:
+                                pass
+        except Exception as e:
+            logger.error(f"[PROCESS] Error clearing previous messages: {e}", exc_info=True)
+    
     @discord.ui.button(label="Group(s) Check", style=discord.ButtonStyle.success, row=0)
     async def group_check_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """Group check button - to be implemented in next step"""
-        await interaction.response.defer(ephemeral=True)
-        await interaction.followup.send(
-            "🔍 Group check functionality will be implemented in the next step.",
-            ephemeral=True
-        )
+        """Group check button - checks user's Roblox groups"""
+        await interaction.response.defer(ephemeral=False)  # Changed to False - visible in chat
+        
+        # Clear previous button messages
+        if interaction.channel and isinstance(interaction.channel, discord.TextChannel):
+            await self._clear_previous_button_messages(interaction.channel, interaction.client.user)
+        
+        try:
+            # Get Roblox Groups service
+            groups_service = get_roblox_groups_service()
+            
+            # Get list of groups to check
+            from services.roblox_groups_service import AOW_GROUP_IDS
+            
+            logger.info(f"[GROUP CHECK] Checking {len(AOW_GROUP_IDS)} groups for user {self.roblox_username} (ID: {self.roblox_id})")
+            
+            # Check user in specified groups
+            found_groups = await groups_service.check_user_in_groups(self.roblox_id, AOW_GROUP_IDS)
+            
+            # Create beautiful embed with results
+            embed = discord.Embed(
+                title=f"Group Check — {self.roblox_username}",
+                description="╔═══════════════════════════════════════════════════════════╗",
+                color=SALAMANDERS_GREEN if found_groups else SALAMANDERS_RED,
+                timestamp=discord.utils.utcnow()
+            )
+            
+            # Only show groups where user was found
+            if found_groups:
+                # Add separator
+                embed.add_field(
+                    name="\u200b",
+                    value="╠═══════════════════════════════════════════════════════════╣",
+                    inline=False
+                )
+                
+                # Create field for each found group with beautiful formatting
+                for group in found_groups:
+                    group_name = group.get('name', 'Unknown Group')
+                    rank = group.get('rank', 0)
+                    role = group.get('role', 'Unknown')
+                    
+                    embed.add_field(
+                        name=f"▸ {group_name}",
+                        value=(
+                            f"```\n"
+                            f"Rank: {rank}\n"
+                            f"Role: {role}\n"
+                            f"```"
+                        ),
+                        inline=False
+                    )
+                
+                # Add separator before summary
+                embed.add_field(
+                    name="\u200b",
+                    value="╠═══════════════════════════════════════════════════════════╣",
+                    inline=False
+                )
+                
+                # Summary with beautiful formatting
+                embed.add_field(
+                    name="Summary",
+                    value=(
+                        f"```\n"
+                        f"Groups Found: {len(found_groups)}/{len(AOW_GROUP_IDS)}\n"
+                        f"User: {self.roblox_username}\n"
+                        f"```"
+                    ),
+                    inline=False
+                )
+                
+                # Closing separator
+                embed.add_field(
+                    name="\u200b",
+                    value="╚═══════════════════════════════════════════════════════════╝",
+                    inline=False
+                )
+                
+                embed.set_footer(
+                    text="Age of Warfare • Process System",
+                    icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+                )
+                
+                await interaction.followup.send(embed=embed)  # Removed ephemeral - visible in chat
+                logger.info(f"[GROUP CHECK] ✅ Group check completed for {self.roblox_username} - Found {len(found_groups)} groups")
+            else:
+                # User not found in any of the specified groups - simple message, no embed
+                logger.info(f"[GROUP CHECK] User {self.roblox_username} not found in any of the specified groups")
+                await interaction.followup.send(
+                    f"User **{self.roblox_username}** was not found in any of the specified groups."
+                )  # Removed ephemeral - visible in chat
+                return
+            
+        except Exception as e:
+            logger.error(f"[GROUP CHECK] Error checking groups: {e}", exc_info=True)
+            error_embed = discord.Embed(
+                title="❌ Error",
+                description=f"An error occurred while checking groups: {str(e)[:200]}",
+                color=SALAMANDERS_RED,
+                timestamp=discord.utils.utcnow()
+            )
+            error_embed.set_footer(
+                text="Age of Warfare • Process System",
+                icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+            )
+            await interaction.followup.send(embed=error_embed)  # Removed ephemeral - visible in chat
     
     @discord.ui.button(label="Outfit(s) Check", style=discord.ButtonStyle.success, row=0)
     async def outfit_check_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """Outfit check button - to be implemented in next step"""
-        await interaction.response.defer(ephemeral=True)
-        await interaction.followup.send(
-            "👕 Outfit check functionality will be implemented in the next step.",
-            ephemeral=True
-        )
+        """Outfit check button - checks user's Roblox outfits"""
+        await interaction.response.defer(ephemeral=False)  # Changed to False - visible in chat
+        
+        # Clear previous button messages
+        if interaction.channel and isinstance(interaction.channel, discord.TextChannel):
+            await self._clear_previous_button_messages(interaction.channel, interaction.client.user)
+        
+        try:
+            # Get Roblox Outfits service
+            outfits_service = get_roblox_outfits_service()
+            
+            logger.info(f"[OUTFIT CHECK HARD TEST] Checking outfits for user {self.roblox_username} (ID: {self.roblox_id})")
+            
+            # Get user outfits
+            outfits = await outfits_service.get_user_outfits(self.roblox_id, limit=50)
+            
+            logger.info(f"[OUTFIT CHECK HARD TEST] Received {len(outfits)} outfits from service")
+            
+            if not outfits:
+                # User has no outfits - send simple message
+                await interaction.followup.send(
+                    f"User **{self.roblox_username}** has no saved outfits."
+                )
+                logger.warning(f"[OUTFIT CHECK HARD TEST] User {self.roblox_username} has no outfits")
+                return
+            
+            # Log outfit details for debugging
+            logger.info(f"[OUTFIT CHECK HARD TEST] Processing {len(outfits)} outfits")
+            for idx, outfit in enumerate(outfits[:5], 1):
+                logger.info(f"[OUTFIT CHECK HARD TEST] Outfit {idx}: ID={outfit.get('id')}, Name={outfit.get('name')}, Thumbnail={outfit.get('thumbnail_url', 'NONE')}")
+            
+            # Download and send images directly as files (JPG/PNG), NOT as embeds
+            # Only user-created outfits (isEditable: True) are included
+            sent_count = 0
+            failed_count = 0
+            
+            logger.info(f"[OUTFIT CHECK] Processing {len(outfits)} user-created outfits for user {self.roblox_username} (isEditable: True only)")
+            
+            # Use a single HTTP session for all requests (more efficient)
+            # Optimized: Send all images in rapid sequence - MAXIMUM SPEED
+            async with aiohttp.ClientSession() as session:
+                for idx, outfit in enumerate(outfits):
+                    # No delay - maximum speed, send all images as fast as possible
+                    # Discord API will handle rate limiting if needed
+                    outfit_id = outfit.get("id")
+                    outfit_name = outfit.get("name", "Unnamed Outfit")
+                    thumbnail_url = outfit.get("thumbnail_url")
+                    fallback_url = outfit.get("thumbnail_url_fallback")
+                    cdn_url = outfit.get("cdn_url")
+                    
+                    if not outfit_id:
+                        logger.warning(f"[OUTFIT CHECK HARD TEST] ⚠️ No outfit ID for outfit: {outfit}")
+                        failed_count += 1
+                        continue
+                    
+                    # Try multiple strategies to get the image
+                    image_data = None
+                    extension = 'png'
+                    
+                    # Strategy 1: Use the CORRECT Roblox Thumbnails API endpoint
+                    # Format: https://thumbnails.roblox.com/v1/users/outfits?userOutfitIds={outfitId}
+                    try:
+                        correct_thumbnail_url = f"https://thumbnails.roblox.com/v1/users/outfits?userOutfitIds={outfit_id}&size=420x420&format=Png"
+                        logger.info(f"[OUTFIT CHECK] Strategy 1: Using CORRECT API endpoint for {outfit_name} (ID: {outfit_id})")
+                        async with session.get(correct_thumbnail_url, timeout=aiohttp.ClientTimeout(total=15)) as response:
+                            logger.info(f"[OUTFIT CHECK] Strategy 1 response status: {response.status} for {outfit_id}")
+                            if response.status == 200:
+                                content_type = response.headers.get('Content-Type', '')
+                                logger.info(f"[OUTFIT CHECK] Strategy 1 content-type: {content_type} for {outfit_id}")
+                                
+                                if 'application/json' in content_type:
+                                    # API returns JSON with data array
+                                    json_data = await response.json()
+                                    logger.info(f"[OUTFIT CHECK] Strategy 1 JSON response keys: {list(json_data.keys())} for {outfit_id}")
+                                    
+                                    if json_data.get('data') and len(json_data['data']) > 0:
+                                        image_url = json_data['data'][0].get('imageUrl')
+                                        if image_url:
+                                            logger.info(f"[OUTFIT CHECK] Got image URL from API: {image_url[:100]}...")
+                                            async with session.get(image_url, timeout=aiohttp.ClientTimeout(total=15)) as img_response:
+                                                logger.info(f"[OUTFIT CHECK] Image URL response status: {img_response.status}")
+                                                if img_response.status == 200:
+                                                    image_data = await img_response.read()
+                                                    extension = 'png'
+                                                    logger.info(f"[OUTFIT CHECK] ✅ Downloaded image via CORRECT API (Strategy 1) for {outfit_name} ({len(image_data)} bytes)")
+                                                else:
+                                                    logger.warning(f"[OUTFIT CHECK] Image URL returned {img_response.status}")
+                                        else:
+                                            logger.warning(f"[OUTFIT CHECK] No imageUrl in JSON data for {outfit_id}, data: {json_data.get('data')}")
+                                    else:
+                                        logger.warning(f"[OUTFIT CHECK] No data array in JSON response for {outfit_id}")
+                                else:
+                                    # Direct image response (unlikely but possible)
+                                    image_data = await response.read()
+                                    if 'jpeg' in content_type or 'jpg' in content_type:
+                                        extension = 'jpg'
+                                    logger.info(f"[OUTFIT CHECK] ✅ Downloaded image directly (Strategy 1) for {outfit_name} ({len(image_data)} bytes)")
+                            elif response.status == 429:
+                                logger.warning(f"[OUTFIT CHECK] Strategy 1: Rate limited (429) for {outfit_id}, will try other strategies")
+                            else:
+                                response_text = await response.text()
+                                logger.warning(f"[OUTFIT CHECK] Strategy 1 returned status {response.status} for {outfit_id}, response: {response_text[:200]}")
+                    except Exception as e:
+                        logger.error(f"[OUTFIT CHECK] Strategy 1 exception for {outfit_id}: {e}", exc_info=True)
+                    
+                    # Strategy 2: Try outfit-3d endpoint (if Strategy 1 failed)
+                    if not image_data and thumbnail_url:
+                        try:
+                            logger.info(f"[OUTFIT CHECK] Strategy 2: Trying outfit-3d URL for {outfit_name} (ID: {outfit_id})")
+                            async with session.get(thumbnail_url, timeout=aiohttp.ClientTimeout(total=15)) as response:
+                                logger.info(f"[OUTFIT CHECK] Strategy 2 response status: {response.status} for {outfit_id}")
+                                if response.status == 200:
+                                    content_type = response.headers.get('Content-Type', '')
+                                    logger.info(f"[OUTFIT CHECK] Strategy 2 content-type: {content_type} for {outfit_id}")
+                                    
+                                    if 'application/json' in content_type:
+                                        json_data = await response.json()
+                                        logger.info(f"[OUTFIT CHECK] Strategy 2 JSON response keys: {list(json_data.keys())} for {outfit_id}")
+                                        
+                                        if json_data.get('data') and len(json_data['data']) > 0:
+                                            image_url = json_data['data'][0].get('imageUrl')
+                                            if image_url:
+                                                logger.info(f"[OUTFIT CHECK] Got image URL from API (Strategy 2): {image_url[:100]}...")
+                                                async with session.get(image_url, timeout=aiohttp.ClientTimeout(total=15)) as img_response:
+                                                    if img_response.status == 200:
+                                                        image_data = await img_response.read()
+                                                        extension = 'png'
+                                                        logger.info(f"[OUTFIT CHECK] ✅ Downloaded image via API (Strategy 2) for {outfit_name} ({len(image_data)} bytes)")
+                                    else:
+                                        image_data = await response.read()
+                                        if 'jpeg' in content_type or 'jpg' in content_type:
+                                            extension = 'jpg'
+                                        logger.info(f"[OUTFIT CHECK] ✅ Downloaded image directly (Strategy 2) for {outfit_name} ({len(image_data)} bytes)")
+                                else:
+                                    logger.warning(f"[OUTFIT CHECK] Strategy 2 returned status {response.status} for {outfit_id}")
+                        except Exception as e:
+                            logger.error(f"[OUTFIT CHECK] Strategy 2 exception for {outfit_id}: {e}", exc_info=True)
+                    
+                    # Strategy 3: Try fallback URL (outfit without 3d) if Strategy 1 and 2 failed
+                    if not image_data and fallback_url:
+                        try:
+                            logger.info(f"[OUTFIT CHECK] Strategy 3: Trying fallback URL for {outfit_name} (ID: {outfit_id})")
+                            async with session.get(fallback_url, timeout=aiohttp.ClientTimeout(total=15)) as response:
+                                logger.info(f"[OUTFIT CHECK] Strategy 3 response status: {response.status} for {outfit_id}")
+                                if response.status == 200:
+                                    content_type = response.headers.get('Content-Type', '')
+                                    if 'application/json' in content_type:
+                                        json_data = await response.json()
+                                        if json_data.get('data') and len(json_data['data']) > 0:
+                                            image_url = json_data['data'][0].get('imageUrl')
+                                            if image_url:
+                                                async with session.get(image_url, timeout=aiohttp.ClientTimeout(total=15)) as img_response:
+                                                    if img_response.status == 200:
+                                                        image_data = await img_response.read()
+                                                        extension = 'png'
+                                                        logger.info(f"[OUTFIT CHECK] ✅ Downloaded image via API (Strategy 3) for {outfit_name} ({len(image_data)} bytes)")
+                                    else:
+                                        image_data = await response.read()
+                                        if 'jpeg' in content_type or 'jpg' in content_type:
+                                            extension = 'jpg'
+                                        logger.info(f"[OUTFIT CHECK] ✅ Downloaded image directly (Strategy 3) for {outfit_name} ({len(image_data)} bytes)")
+                        except Exception as e:
+                            logger.error(f"[OUTFIT CHECK] Strategy 3 exception for {outfit_id}: {e}", exc_info=True)
+                    
+                    # Send image if we got it
+                    if image_data:
+                        try:
+                            # Create a file-like object from bytes
+                            image_file = discord.File(
+                                BytesIO(image_data),
+                                filename=f"{outfit_name.replace(' ', '_').replace('/', '_')}_{outfit_id}.{extension}"
+                            )
+                            
+                            # Send image directly as file (NO EMBED)
+                            await interaction.followup.send(file=image_file)
+                            sent_count += 1
+                            
+                            # No delay - maximum speed, send as fast as possible
+                        except Exception as e:
+                            logger.error(f"[OUTFIT CHECK HARD TEST] ❌ Error sending outfit {outfit_id}: {e}", exc_info=True)
+                            failed_count += 1
+                    else:
+                        logger.warning(f"[OUTFIT CHECK HARD TEST] ⚠️ All strategies failed for outfit {outfit_id} ({outfit_name})")
+                        failed_count += 1
+            
+            # Send beautiful completion embed
+            completion_embed = discord.Embed(
+                title="Outfit Identification Complete",
+                description=f"The outfit identification process has been completed for **{self.roblox_username}**.",
+                color=SALAMANDERS_GREEN,
+                timestamp=discord.utils.utcnow()
+            )
+            completion_embed.set_footer(
+                text="Age of Warfare • Process System",
+                icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+            )
+            
+            await interaction.followup.send(embed=completion_embed)
+            
+            logger.info(f"[OUTFIT CHECK HARD TEST] ✅ Outfit check completed for {self.roblox_username} - Sent {sent_count} outfit images, {failed_count} failed out of {len(outfits)} user-created outfits")
+            
+        except Exception as e:
+            logger.error(f"[OUTFIT CHECK] Error checking outfits: {e}", exc_info=True)
+            error_embed = discord.Embed(
+                title="❌ Error",
+                description=f"An error occurred while checking outfits: {str(e)[:200]}",
+                color=SALAMANDERS_RED,
+                timestamp=discord.utils.utcnow()
+            )
+            error_embed.set_footer(
+                text="Age of Warfare • Process System",
+                icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+            )
+            await interaction.followup.send(embed=error_embed)
     
     @discord.ui.button(label="Induction Process", style=discord.ButtonStyle.success, row=0)
     async def induction_process_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """Induction process button - to be implemented in next step"""
-        await interaction.response.defer(ephemeral=True)
-        await interaction.followup.send(
-            "⚔️ Induction process functionality will be implemented in the next step.",
-            ephemeral=True
-        )
+        """Induction process button - shows confirmation dialog before proceeding"""
+        await interaction.response.defer(ephemeral=False)
+        
+        # Clear previous button messages
+        if interaction.channel and isinstance(interaction.channel, discord.TextChannel):
+            await self._clear_previous_button_messages(interaction.channel, interaction.client.user)
+        
+        try:
+            # Get services
+            groups_service = get_roblox_groups_service()
+            
+            # Main group for accepting requests: 6340169
+            MAIN_GROUP_ID = 6340169  # Group to accept user
+            
+            # Check if Roblox cookie is configured
+            if not ROBLOX_COOKIE:
+                error_embed = discord.Embed(
+                    title="Configuration Error",
+                    description="Roblox cookie is not configured. Please set ROBLOX_COOKIE environment variable to enable group operations.",
+                    color=SALAMANDERS_RED,
+                    timestamp=discord.utils.utcnow()
+                )
+                error_embed.set_footer(
+                    text="Age of Warfare • Process System",
+                    icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+                )
+                await interaction.followup.send(embed=error_embed)
+                logger.warning("[INDUCTION] Roblox cookie not configured")
+                return
+            
+            # Check if user is already in the main group
+            logger.info(f"[INDUCTION] Checking if user {self.roblox_username} (ID: {self.roblox_id}) is already in group {MAIN_GROUP_ID}")
+            is_in_group = await groups_service.is_user_in_group(self.roblox_id, MAIN_GROUP_ID)
+            
+            # Check if user has pending request
+            has_pending_request = False
+            if not is_in_group:
+                logger.info(f"[INDUCTION] Checking pending request for user {self.roblox_username}")
+                request_check = await groups_service.check_pending_request(
+                    group_id=MAIN_GROUP_ID,
+                    roblox_user_id=self.roblox_id,
+                    roblox_cookie=ROBLOX_COOKIE
+                )
+                has_pending_request = request_check.get("has_request", False)
+            
+            # Get group names for display
+            MAIN_GROUP_ID = 6340169
+            RANK_CHANGE_GROUP_ID = 6496437
+            
+            main_group_info = await groups_service.get_group_info(MAIN_GROUP_ID)
+            rank_group_info = await groups_service.get_group_info(RANK_CHANGE_GROUP_ID)
+            
+            main_group_name = main_group_info.get("name", f"Group {MAIN_GROUP_ID}") if main_group_info else f"Group {MAIN_GROUP_ID}"
+            rank_group_name = rank_group_info.get("name", f"Group {RANK_CHANGE_GROUP_ID}") if rank_group_info else f"Group {RANK_CHANGE_GROUP_ID}"
+            
+            # Create confirmation embed
+            if is_in_group:
+                status_text = "✅ User is already a member of the group"
+                status_color = SALAMANDERS_GREEN
+            elif has_pending_request:
+                status_text = "✅ User has a pending join request"
+                status_color = SALAMANDERS_GREEN
+            else:
+                status_text = "⚠️ User does not have a pending join request"
+                status_color = discord.Color.orange()
+            
+            confirmation_embed = discord.Embed(
+                title="Induction Process Confirmation",
+                description=f"Review the information below before proceeding with the induction process for **{self.roblox_username}**.",
+                color=status_color,
+                timestamp=discord.utils.utcnow()
+            )
+            
+            # User information section
+            confirmation_embed.add_field(
+                name="Roblox Username",
+                value=self.roblox_username,
+                inline=True
+            )
+            confirmation_embed.add_field(
+                name="Roblox ID",
+                value=str(self.roblox_id),
+                inline=True
+            )
+            confirmation_embed.add_field(
+                name="\u200b",  # Empty field for spacing
+                value="\u200b",
+                inline=True
+            )
+            
+            # Group status
+            confirmation_embed.add_field(
+                name="Group Status",
+                value=status_text,
+                inline=False
+            )
+            
+            # What will happen section with group names
+            what_will_happen = []
+            if not is_in_group:
+                what_will_happen.append(f"• Accept user to **{main_group_name}**")
+            what_will_happen.append(f"• Change rank in **{rank_group_name}** (238 → 240)")
+            what_will_happen.append("• Update Ignis database")
+            
+            confirmation_embed.add_field(
+                name="What will happen",
+                value="\n".join(what_will_happen),
+                inline=False
+            )
+            
+            confirmation_embed.set_footer(
+                text="Age of Warfare • Process System",
+                icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+            )
+            
+            # Create confirmation view with buttons
+            confirmation_view = InductionConfirmationView(
+                roblox_username=self.roblox_username,
+                roblox_id=self.roblox_id,
+                is_in_group=is_in_group,
+                has_pending_request=has_pending_request
+            )
+            
+            await interaction.followup.send(embed=confirmation_embed, view=confirmation_view)
+            logger.info(f"[INDUCTION] Confirmation dialog shown for {self.roblox_username}")
+            
+        except Exception as e:
+            logger.error(f"[INDUCTION] Error showing confirmation: {e}", exc_info=True)
+            error_embed = discord.Embed(
+                title="Error",
+                description=f"An error occurred: {str(e)[:200]}",
+                color=SALAMANDERS_RED,
+                timestamp=discord.utils.utcnow()
+            )
+            error_embed.set_footer(
+                text="Age of Warfare • Process System",
+                icon_url="https://wa-cdn.nyc3.digitaloceanspaces.com/user-data/production/970c868b-efa5-4aa1-a4c6-8385fcc8e8f9/uploads/images/f77af3977263219d0bb678d720da6e6c.png"
+            )
+            await interaction.followup.send(embed=error_embed)
     
     @discord.ui.button(label="Close Process", style=discord.ButtonStyle.danger, row=1)
     async def close_process_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -419,7 +1282,10 @@ class ProcessCog(commands.Cog):
             view = ProcessButtonsView(roblox_username_found, roblox_id)
             
             # Send embed to the new private channel
-            await process_channel.send(embed=embed, view=view)
+            main_message = await process_channel.send(embed=embed, view=view)
+            
+            # Store the main embed message ID in the view
+            view.main_embed_message_id = main_message.id
             
             # Create beautiful embed response for the command (ephemeral - only visible to command executor)
             response_embed = discord.Embed(

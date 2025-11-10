@@ -14,10 +14,65 @@ from typing import Optional
 from services.progression_service import ProgressionService
 from services.audit_service import AuditService
 from services.config_service import get_config_service
+from services.bloxlink_service import BloxlinkService
+from services.roblox_groups_service import get_roblox_groups_service, AOW_GROUP_IDS
 from utils.rank_paths import ALL_PATHS, DEFAULT_PATH
 from utils.logger import get_logger
+from utils.config import GUILD_ID
 
 logger = get_logger(__name__)
+
+# Main group ID for checking rank
+MAIN_GROUP_ID = 6340169
+
+# Rank to nickname prefix mapping
+RANK_NICKNAME_PREFIX = {
+    # Mortals (Pre-Induction)
+    "Civitas Aspirant": "IA",
+    "Emberbound Initiate": "IA",
+    "Obsidian Trialborn": "IA",
+    "Crucible Neophyte": "IA",
+    "Emberbrand Proving": "IA",
+    
+    # Legionaries
+    "Inductii": "IG",
+    "Legionary": "6",
+    "Ashborn Legionary": "6",
+    "Support Squad": "6",
+    "Legion Veteran": "6",
+    "Flamehardened Veteran": "6",
+    "Legion Elite": "6",
+    
+    # Specialist
+    "Techmarine": "A",
+    "Chaplain": "A",
+    "Apothecarion": "A",
+    "Vexillarius": "A",
+    "Destroyer": "A",
+    "Signal Marine": "A",
+    "Terminator Squad": "A",
+    
+    # Company ranks - will use company number from database
+    "Cindershield Sergeant": None,  # Use company from DB
+    "Emberblade Veteran Sergeant": None,  # Use company from DB
+    "2nd Lieutenant (Furnace Warden)": None,  # Use company from DB
+    "1st Lieutenant (Pyre Watcher)": None,  # Use company from DB
+    "Flameborne Captain": None,  # Use company from DB
+    
+    # Great Company
+    "Pyroclast Sentinel": None,  # Use company from DB
+    "Cindermarked": None,  # Use company from DB
+    "Flamewrought": None,  # Use company from DB
+    "Consulate": None,  # Use company from DB
+    "Marshal": None,  # Use company from DB
+    
+    # High Command
+    "Preator": None,  # Use company from DB
+    "Commander": None,  # Use company from DB
+    "First Captain": None,  # Use company from DB
+    "Primarch": None,  # Use company from DB
+    "Emperor Of Mankind": None,  # Use company from DB
+}
 
 
 class RoleSyncHandler(commands.Cog):
@@ -33,6 +88,8 @@ class RoleSyncHandler(commands.Cog):
         self.progression_service = ProgressionService()
         self.audit_service = AuditService()
         self.config_service = get_config_service()
+        self.bloxlink_service = BloxlinkService()
+        self.groups_service = get_roblox_groups_service()
         
         # Load role-to-rank mapping from configuration service
         # This allows easy editing without code changes
@@ -234,12 +291,131 @@ class RoleSyncHandler(commands.Cog):
                 f"{current_rank} -> {new_rank} (from Discord role: {after_role})"
             )
             
+            # Get company number based on Roblox rank
+            company_number = await self._get_company_for_user(after)
+            
+            # Update nickname with format: {Prefix} {group-rank} {roblox-name}
+            await self._update_nickname(after, new_rank, company_number)
+            
         except Exception as e:
             logger.error(
                 f"Error syncing rank for user {after.id} after role update: {e}",
                 exc_info=True
             )
-
+    
+    async def _update_nickname(self, member: discord.Member, system_rank: str):
+        """
+        Update member's nickname to format: {Prefix} {group-rank} {roblox-name}
+        
+        Prefix can be:
+        - Fixed prefix from RANK_NICKNAME_PREFIX (e.g., "IA", "IG", "6", "A")
+        - Company number from database (for ranks that need company)
+        
+        Args:
+            member: Discord member
+            system_rank: System rank name (from database)
+        """
+        try:
+            # Check bot permissions
+            guild = member.guild
+            me = guild.me or guild.get_member(self.bot.user.id)
+            if not me or not me.guild_permissions.manage_nicknames:
+                logger.debug(f"Bot doesn't have manage_nicknames permission in guild {guild.id}")
+                return
+            
+            # Get Discord role name
+            after_role = self._find_highest_rank_role(member)
+            if not after_role:
+                logger.debug(f"No tracked role found for member {member.id}, skipping nickname update")
+                return
+            
+            # Get prefix for this rank
+            prefix = RANK_NICKNAME_PREFIX.get(system_rank)
+            
+            # If prefix is None, try to get company number
+            if prefix is None:
+                # First, try company_number parameter (from Roblox rank)
+                if company_number is not None:
+                    prefix = str(company_number)
+                else:
+                    # Fallback: try to get company number from database
+                    from cogs.rank import RankCog
+                    rank_cog = self.bot.get_cog("RankCog")
+                    if rank_cog:
+                        await rank_cog._ensure_table()
+                        company = await rank_cog._get_company_for_role(after_role)
+                        if company is not None:
+                            prefix = str(company)
+                        else:
+                            logger.debug(f"No prefix or company set for rank {system_rank}, skipping nickname update")
+                            return
+                    else:
+                        logger.debug(f"No RankCog found and no prefix for {system_rank}, skipping nickname update")
+                        return
+            
+            # Get Roblox user data via Bloxlink
+            roblox_data = await self.bloxlink_service.get_roblox_user(
+                discord_id=member.id,
+                guild_id=guild.id
+            )
+            
+            if not roblox_data:
+                logger.debug(f"User {member.id} not verified by Bloxlink, skipping nickname update")
+                return
+            
+            roblox_username = roblox_data.get("username", member.name)
+            roblox_id = roblox_data.get("id")
+            
+            if not roblox_id:
+                logger.warning(f"Roblox ID not found for user {member.id}")
+                return
+            
+            # Get rank from Roblox group (main group: 6340169)
+            roblox_rank_info = await self.groups_service.get_user_rank_in_group(roblox_id, MAIN_GROUP_ID)
+            
+            if not roblox_rank_info:
+                logger.debug(f"User {roblox_username} (ID: {roblox_id}) not in main group {MAIN_GROUP_ID}")
+                # Still update nickname without Roblox rank
+                group_rank = "N/A"
+            else:
+                group_rank = roblox_rank_info.get("role", "N/A")
+            
+            # Format nickname: {Prefix} {group-rank} {roblox-name}
+            new_nickname = f"{prefix}. {group_rank} {roblox_username}"
+            
+            # Discord nickname limit is 32 characters
+            if len(new_nickname) > 32:
+                # Try shorter format: {Prefix} {roblox-name}
+                new_nickname = f"{prefix}. {roblox_username}"
+                if len(new_nickname) > 32:
+                    # Last resort: just prefix and truncated username
+                    max_username_len = 32 - len(f"{prefix}. ") - 3  # -3 for "..."
+                    truncated_username = roblox_username[:max_username_len] + "..." if len(roblox_username) > max_username_len else roblox_username
+                    new_nickname = f"{prefix}. {truncated_username}"
+            
+            # Check if nickname needs updating
+            if member.nick == new_nickname:
+                logger.debug(f"Nickname for {member.id} already correct: {new_nickname}")
+                return
+            
+            # Update nickname
+            try:
+                await member.edit(nick=new_nickname, reason="Ignis: Auto-update nickname after Bloxlink /update")
+                logger.info(
+                    f"Nickname updated for {member.id} ({member.display_name}): "
+                    f"'{member.nick}' -> '{new_nickname}'"
+                )
+            except discord.Forbidden:
+                logger.warning(f"No permission to edit nickname for {member.id}")
+            except discord.HTTPException as e:
+                logger.error(f"HTTP error updating nickname for {member.id}: {e}")
+            
+        except Exception as e:
+            logger.error(
+                f"Error updating nickname for user {member.id}: {e}",
+                exc_info=True
+            )
+    
 
 async def setup(bot: commands.Bot):
     """Setup function to load the cog"""

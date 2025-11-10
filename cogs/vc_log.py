@@ -203,18 +203,35 @@ class VCLogCog(commands.Cog):
                 
                 after_points = transaction.after
                 
-                # Create embed
+                # Create clean, aesthetic embed without emojis
                 embed = discord.Embed(
-                    title="✅ Points Added",
-                    color=discord.Color.dark_green()
+                    title="Points Added",
+                    color=discord.Color.from_rgb(46, 125, 50)  # Dark green
                 )
-                embed.add_field(name="**User:**", value=member.mention, inline=False)
+                
+                # Add user avatar as thumbnail
+                if member.avatar:
+                    embed.set_thumbnail(url=member.avatar.url)
+                
+                # Add fields in a clean, organized way
                 embed.add_field(
-                    name="**Points:**",
-                    value=f"{before_points} → {after_points}",
-                    inline=False
+                    name="User",
+                    value=member.mention,
+                    inline=True
                 )
-                embed.add_field(name="**Event Type:**", value=event_type or "—", inline=False)
+                
+                embed.add_field(
+                    name="Points",
+                    value=f"{before_points} → {after_points}",
+                    inline=True
+                )
+                
+                embed.add_field(
+                    name="Event Type",
+                    value=event_type or "—",
+                    inline=True
+                )
+                
                 embed.timestamp = discord.utils.utcnow()
                 footer_icon = getattr(interaction.user.display_avatar, "url", None)
                 embed.set_footer(
@@ -229,15 +246,19 @@ class VCLogCog(commands.Cog):
                 error_msg = str(ex)
                 if "consent" in error_msg.lower():
                     logger.warning(f"User {member.id} attempted VC log without consent")
-                    # Create error embed
+                    # Create error embed (clean, no emojis)
                     embed = discord.Embed(
-                        title="❌ Consent Required",
+                        title="Consent Required",
                         description=(
                             f"{member.mention} has not given consent for data processing.\n"
                             f"Please ask them to use `/consent grant` first."
                         ),
-                        color=discord.Color.orange()
+                        color=discord.Color.from_rgb(255, 152, 0)  # Orange
                     )
+                    
+                    # Add user avatar
+                    if member.avatar:
+                        embed.set_thumbnail(url=member.avatar.url)
                     return (embed, member.mention)
                 # Re-raise other ValueErrors
                 raise
@@ -245,10 +266,14 @@ class VCLogCog(commands.Cog):
             except Exception as ex:
                 logger.error(f"Error updating user {member.id} in vc_log: {ex}", exc_info=True)
                 embed = discord.Embed(
-                    title="❌ Error",
+                    title="Error",
                     description=f"Could not update {member.mention}.\n{str(ex)[:200]}",
-                    color=discord.Color.red()
+                    color=discord.Color.from_rgb(211, 47, 47)  # Dark red
                 )
+                
+                # Add user avatar
+                if member.avatar:
+                    embed.set_thumbnail(url=member.avatar.url)
                 return (embed, member.mention)
         
         # Process all members in parallel
@@ -275,20 +300,43 @@ class VCLogCog(commands.Cog):
         summary_channel = self.bot.get_channel(SUMMARY_CHANNEL_FALLBACK_ID)
         
         if isinstance(summary_channel, (discord.TextChannel, discord.Thread)):
+            # Create clean summary embed (no emojis)
             summary = discord.Embed(
-                title="📊 Event Summary",
-                color=discord.Color.dark_green()
+                title="Event Summary",
+                color=discord.Color.from_rgb(46, 125, 50),  # Dark green
+                timestamp=discord.utils.utcnow()
             )
-            summary.add_field(name="**Host:**", value=interaction.user.mention, inline=False)
-            summary.add_field(name="**Event Type:**", value=event_type, inline=False)
-            summary.add_field(name="**Channel:**", value=channel.mention, inline=False)
+            
             summary.add_field(
-                name="**Attendees:**",
-                value=", ".join(attendees) or "None",
+                name="Host",
+                value=interaction.user.mention,
+                inline=True
+            )
+            
+            summary.add_field(
+                name="Event Type",
+                value=event_type,
+                inline=True
+            )
+            
+            summary.add_field(
+                name="Channel",
+                value=channel.mention,
+                inline=True
+            )
+            
+            summary.add_field(
+                name="Attendees",
+                value=", ".join(attendees) if attendees else "None",
                 inline=False
             )
             
-            summary.timestamp = discord.utils.utcnow()
+            summary.add_field(
+                name="Points",
+                value=str(amount),
+                inline=True
+            )
+            
             footer_icon = getattr(interaction.user.display_avatar, "url", None)
             summary.set_footer(
                 text=f"Logged by {interaction.user.display_name}",
@@ -300,10 +348,41 @@ class VCLogCog(commands.Cog):
             except Exception as e:
                 logger.error(f"Error sending summary to channel: {e}", exc_info=True)
         
-        # 8) Final confirmation
-        await interaction.followup.send(
-            f"✅ Points have been logged for **{len(attendees)}** members in **{channel.name}**."
+        # 8) Final confirmation (beautiful embed)
+        response_embed = discord.Embed(
+            title="Points Logged",
+            description=f"Points have been logged for **{len(attendees)}** member(s) in {channel.mention}.",
+            color=discord.Color.from_rgb(46, 125, 50),  # Dark green
+            timestamp=discord.utils.utcnow()
         )
+        
+        # Add summary information
+        response_embed.add_field(
+            name="Channel",
+            value=channel.mention,
+            inline=True
+        )
+        
+        response_embed.add_field(
+            name="Members",
+            value=str(len(attendees)),
+            inline=True
+        )
+        
+        response_embed.add_field(
+            name="Points",
+            value=str(amount),
+            inline=True
+        )
+        
+        # Set footer
+        footer_icon = getattr(interaction.user.display_avatar, "url", None)
+        response_embed.set_footer(
+            text=f"Logged by {interaction.user.display_name}",
+            icon_url=footer_icon
+        )
+        
+        await interaction.followup.send(embed=response_embed)
         
         # Log audit
         try:

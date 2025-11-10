@@ -119,6 +119,60 @@ class HealthCog(commands.Cog):
                 latency_info += f"ℹ️ {latency['note']}\n"
             embed.add_field(name="⚡ Command Latency", value=latency_info, inline=False)
             
+            # System Resources section
+            system_resources = report.get("system_resources", {})
+            if system_resources.get("status") != "error":
+                resources_status = system_resources.get("status", "unknown")
+                resources_emoji = "✅" if resources_status == "healthy" else "⚠️" if resources_status == "warning" else "❌"
+                resources_info = f"{resources_emoji} **Status:** {resources_status.upper()}\n"
+                
+                # CPU
+                cpu = system_resources.get("cpu", {})
+                if cpu:
+                    cpu_info = f"🔧 **CPU:** {cpu.get('process_percent', 0)}% (process) / {cpu.get('system_percent', 0)}% (system)\n"
+                    cpu_info += f"   Cores: {cpu.get('cores', 'N/A')}"
+                    if cpu.get('frequency_mhz'):
+                        cpu_info += f" | {cpu.get('frequency_mhz')} MHz"
+                    resources_info += cpu_info + "\n"
+                
+                # Memory
+                memory = system_resources.get("memory", {})
+                if memory:
+                    mem_info = f"💾 **Memory:** {memory.get('process_mb', 0)} MB (process) / {memory.get('process_percent', 0)}% (process)\n"
+                    mem_info += f"   System: {memory.get('system_used_gb', 0)} GB / {memory.get('system_total_gb', 0)} GB ({memory.get('system_percent', 0)}%)\n"
+                    mem_info += f"   Available: {memory.get('system_available_gb', 0)} GB"
+                    resources_info += mem_info + "\n"
+                
+                # Disk
+                disk = system_resources.get("disk", {})
+                if disk:
+                    disk_info = f"💿 **Disk:** {disk.get('used_gb', 0)} GB / {disk.get('total_gb', 0)} GB ({disk.get('percent', 0)}%)\n"
+                    disk_info += f"   Free: {disk.get('free_gb', 0)} GB"
+                    resources_info += disk_info + "\n"
+                
+                # GPU
+                gpu = system_resources.get("gpu", {})
+                if gpu and gpu.get("available"):
+                    gpu_info = f"🎮 **GPU:** {gpu.get('count', 0)} GPU(s) detected\n"
+                    for idx, gpu_data in enumerate(gpu.get("gpus", []), 1):
+                        gpu_info += f"   GPU {idx}: {gpu_data.get('name', 'Unknown')}\n"
+                        gpu_info += f"      Memory: {gpu_data.get('memory_used_gb', 0)} GB / {gpu_data.get('memory_total_gb', 0)} GB ({gpu_data.get('memory_percent', 0)}%)\n"
+                        gpu_info += f"      Utilization: {gpu_data.get('utilization_percent', 0)}%"
+                        if idx < len(gpu.get("gpus", [])):
+                            gpu_info += "\n"
+                    resources_info += gpu_info
+                elif gpu and not gpu.get("available"):
+                    resources_info += f"🎮 **GPU:** {gpu.get('note', 'Not available')}\n"
+                
+                embed.add_field(name="🖥️ System Resources", value=resources_info, inline=False)
+            else:
+                error_msg = system_resources.get("error", "Unknown error")
+                embed.add_field(
+                    name="🖥️ System Resources",
+                    value=f"❌ **Error:** {error_msg}",
+                    inline=False
+                )
+            
             # Footer
             embed.set_footer(
                 text=f"Check completed in {report.get('check_duration_ms', 0):.2f}ms",

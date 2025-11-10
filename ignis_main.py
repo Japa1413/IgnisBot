@@ -80,6 +80,10 @@ class IgnisBot(commands.Bot):
         from events.role_sync_handler import setup as setup_role_sync
         await setup_role_sync(self)
         
+        # 5.1) Bloxlink Command Detector - Detect /verify and /update commands
+        from events.bloxlink_command_detector import setup as setup_bloxlink_detector
+        await setup_bloxlink_detector(self)
+        
         # 6) Member Activity Log - Monitor voice channels and member join/leave
         from cogs.member_activity_log import setup as setup_member_activity_log
         await setup_member_activity_log(self)

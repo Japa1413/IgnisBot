@@ -1,174 +1,207 @@
-# 📋 PRÓXIMOS PASSOS - IGNIS BOT
+# Próximos Passos - IgnisBot Development
 
-**Data:** 2025-01-XX  
-**Status:** 🟡 **EM ANDAMENTO**
+## ✅ Implementações Recentes (Concluídas)
 
----
+### Sistema de Process
+- ✅ Comando `/process` funcional
+- ✅ Criação automática de canais privados
+- ✅ Embed estilosa com avatar 3D do Roblox
+- ✅ Botões interativos (Group Check, Outfit Check, Induction Process, Profile Link, Close)
+- ✅ Auto-close após 5 minutos de inatividade
+- ✅ Profile Link como botão direto (sem permissão)
 
-## 🎯 PRIORIDADE ALTA (Imediato)
+### Sistema de Roadmap
+- ✅ Comando `/roadmap` manual
+- ✅ Sistema automático de postagem baseado em documentação
+- ✅ Parser de documentação (features, fixes, upcoming)
+- ✅ Tradução automática para inglês
+- ✅ Verificação a cada 6 horas
+- ✅ Postagem na inicialização
 
-### 1. Configurar Cargos e Ranks Reais
-**Status:** ⏳ Pendente  
-**Descrição:** Configurar o arquivo `config/roles_ranks.json` com os cargos reais do Discord do servidor.
+### Melhorias no VC Log
+- ✅ Embeds estilizadas sem emojis
+- ✅ Avatar dos usuários nas embeds
+- ✅ Layout organizado com fields inline
+- ✅ Mensagem de resposta em embed
+- ✅ Menção do canal usando #channel
 
-**Ações:**
-- [ ] Listar todos os cargos do Discord do servidor
-- [ ] Mapear cada cargo para o rank correspondente no sistema
-- [ ] Atualizar `config/roles_ranks.json` com os mapeamentos corretos
-- [ ] Testar sincronização de ranks usando `/config_role_list`
-- [ ] Validar que o `role_sync_handler` está funcionando corretamente
-
-**Comandos úteis:**
-- `/config_role_add discord_role:"Nome do Cargo" system_rank:"Nome do Rank" category:"Categoria"`
-- `/config_role_list` - Verificar mapeamentos
-- `/config_role_remove discord_role:"Cargo"` - Remover se necessário
-
----
-
-### 2. Testar Funcionalidades Implementadas
-**Status:** ⏳ Pendente  
-**Descrição:** Validar que todas as funcionalidades estão funcionando corretamente em produção.
-
-**Checklist:**
-- [ ] Testar `/userinfo` - Verificar exibição correta de informações
-- [ ] Testar `/config_role_*` - Validar comandos de configuração
-- [ ] Testar sistema de auto-role (Gamenight Role)
-- [ ] Testar bloqueio de eventos simultâneos
-- [ ] Testar criação de eventos (todos os tipos)
-- [ ] Testar `/health` - Verificar status do sistema
-- [ ] Validar self-repair service (verificar logs de health check)
-
----
-
-### 3. Configurar Operação 24/7
-**Status:** ⏳ Pendente  
-**Descrição:** Configurar o bot para rodar 24/7 com monitoramento automático.
-
-**Ações:**
-- [ ] Executar `scripts/start_ignis_24_7.ps1` para iniciar monitoramento
-- [ ] Verificar se o monitor está funcionando corretamente
-- [ ] Testar auto-restart (simular crash)
-- [ ] Configurar Task Scheduler do Windows (opcional, para auto-start no boot)
-- [ ] Verificar logs em `logs/monitor.log`
-
-**Comandos:**
-```powershell
-.\scripts\start_ignis_24_7.ps1
-```
-
----
-
-## 🎯 PRIORIDADE MÉDIA (Esta Semana)
-
-### 4. Melhorar Sistema de Configuração
-**Status:** ⏳ Pendente  
-**Descrição:** Adicionar mais funcionalidades ao sistema de configuração.
-
-**Melhorias sugeridas:**
-- [ ] Adicionar comando `/config_reload` para recarregar configuração sem reiniciar
-- [ ] Adicionar validação de configuração (verificar se JSON é válido)
-- [ ] Adicionar backup automático de configuração antes de alterações
-- [ ] Criar interface web para edição (opcional, futuro)
-
----
-
-### 5. Otimizar Performance
-**Status:** ⏳ Pendente  
-**Descrição:** Melhorar performance e reduzir latência.
-
-**Ações:**
-- [ ] Analisar queries de banco de dados lentas
-- [ ] Otimizar cache (ajustar TTL baseado em uso)
-- [ ] Implementar connection pooling mais eficiente
-- [ ] Adicionar índices em tabelas se necessário
-- [ ] Monitorar métricas de performance
-
-**Scripts disponíveis:**
-- `scripts/optimize_database.py` - Otimizar banco de dados
-- `scripts/validar_performance.py` - Validar performance
-
----
-
-### 6. Expandir Documentação
-**Status:** ⏳ Pendente  
-**Descrição:** Completar documentação faltante.
-
-**Documentos a criar/atualizar:**
-- [ ] Guia de configuração de cargos e ranks
-- [ ] Guia de troubleshooting avançado
-- [ ] Documentação de API interna
-- [ ] Guia de deploy e manutenção
-- [ ] Documentação de comandos administrativos
-
----
-
-## 🎯 PRIORIDADE BAIXA (Próximas Semanas)
-
-### 7. Implementar Métricas e Dashboard
-**Status:** ⏳ Pendente  
-**Descrição:** Criar sistema de métricas e dashboard para monitoramento.
-
-**Funcionalidades:**
-- [ ] Coletar métricas de uso (comandos mais usados, usuários ativos)
-- [ ] Dashboard básico (web ou Discord embed)
-- [ ] Alertas automáticos para problemas críticos
-- [ ] Histórico de performance
-
----
-
-### 8. Melhorias de UX/UI
-**Status:** ⏳ Pendente  
-**Descrição:** Melhorar experiência do usuário.
-
-**Melhorias:**
-- [ ] Adicionar autocomplete em mais comandos
-- [ ] Melhorar mensagens de erro (mais descritivas)
-- [ ] Adicionar progress indicators para comandos longos
-- [ ] Criar comandos contextuais (menu do Discord)
-
----
-
-### 9. Testes Automatizados
-**Status:** ⏳ Pendente  
-**Descrição:** Expandir suite de testes.
-
-**Ações:**
-- [ ] Adicionar mais testes unitários
-- [ ] Criar testes de integração
-- [ ] Configurar CI/CD
-- [ ] Testes de carga
-
----
-
-## 📊 STATUS GERAL
-
-### Funcionalidades Implementadas ✅
-- ✅ Sistema de configuração editável
-- ✅ Self-repair service
-- ✅ Scripts 24/7
-- ✅ Comandos `/config_role_*`
-- ✅ Melhorias no `/userinfo`
-- ✅ Sistema de auto-role
+### Sistema de Eventos
+- ✅ Painel de eventos com botões
 - ✅ Bloqueio de eventos simultâneos
+- ✅ Sistema de End button
+- ✅ Imagens personalizadas para cada evento
+- ✅ Modal para descrições e links
 
-### Funcionalidades Pendentes ⏳
-- ⏳ Configuração de cargos reais
-- ⏳ Testes em produção
-- ⏳ Operação 24/7 configurada
-- ⏳ Documentação expandida
+### Sistema de Auto-Role
+- ✅ Gamenight role assignment
+- ✅ Botão toggle funcional
+- ✅ Auto-posting no canal
+
+### Sistema de Configuração
+- ✅ Arquivo JSON para roles/ranks
+- ✅ Comandos de gerenciamento (`/config_role_*`)
+- ✅ Sistema de prioridade de roles
+
+### Sistema de Monitoramento
+- ✅ Health check (`/health`)
+- ✅ Self-repair service
+- ✅ Monitoramento 24/7
+- ✅ Logs estruturados
 
 ---
 
-## 🚀 RECOMENDAÇÃO IMEDIATA
+## 📋 Próximos Passos Sugeridos
 
-**Próximo passo sugerido:** Configurar cargos e ranks reais
+### Prioridade ALTA
 
-1. Listar todos os cargos do Discord
-2. Mapear para ranks do sistema
-3. Atualizar `config/roles_ranks.json`
-4. Testar com `/config_role_list`
+#### 1. Implementar Funcionalidades dos Botões do `/process`
+- [ ] **Group(s) Check Button**
+  - Verificar se o usuário está no grupo do Roblox (AoW)
+  - Verificar rank no grupo
+  - Verificar se está em outros grupos de Legions
+  - Exibir informações em embed organizada
+
+- [x] **Outfit(s) Check Button** ✅ IMPLEMENTADO
+  - Buscar outfits do usuário no Roblox
+  - Exibir imagens dos outfits
+  - Organizar em embed com carrossel ou grid
+
+- [ ] **Induction Process Button**
+  - Aceitar automaticamente no grupo do Roblox
+  - Atribuir rank inicial (Legiones Astartes)
+  - Atualizar banco de dados
+  - Notificar conclusão
+
+#### 2. Sistema de Grupos Roblox
+- [ ] Integração com Roblox Groups API
+- [ ] Verificação de membros em grupos
+- [ ] Verificação de ranks em grupos
+- [ ] Sistema de sincronização de ranks
+
+#### 3. Sistema de Outfits Roblox ✅ IMPLEMENTADO
+- [x] Buscar outfits do usuário
+- [x] Obter imagens dos outfits
+- [x] Exibir em formato organizado
+
+### Prioridade MÉDIA
+
+#### 4. Melhorias no Sistema de Eventos
+- [ ] Adicionar mais eventos personalizados
+- [ ] Sistema de agendamento de eventos
+- [ ] Notificações antes do evento
+- [ ] Sistema de check-in para eventos
+
+#### 5. Sistema de Leaderboard Melhorado
+- [ ] Leaderboard por categoria (Company, Rank, etc.)
+- [ ] Leaderboard semanal/mensal
+- [ ] Gráficos de progresso
+- [ ] Comparação entre usuários
+
+#### 6. Sistema de Notificações
+- [ ] Notificações de promoções
+- [ ] Notificações de eventos
+- [ ] Notificações de conquistas
+- [ ] Sistema de preferências de notificação
+
+#### 7. Sistema de Conquistas/Awards
+- [ ] Sistema de badges/conquistas
+- [ ] Badges por participação em eventos
+- [ ] Badges por tempo de serviço
+- [ ] Exibição de conquistas no `/userinfo`
+
+### Prioridade BAIXA
+
+#### 8. Sistema de Estatísticas
+- [ ] Dashboard de estatísticas do servidor
+- [ ] Estatísticas de eventos
+- [ ] Estatísticas de atividade
+- [ ] Relatórios automáticos
+
+#### 9. Sistema de Backup e Restore
+- [ ] Backup automático do banco de dados
+- [ ] Sistema de restore
+- [ ] Versionamento de backups
+- [ ] Notificações de backup
+
+#### 10. Melhorias de Performance
+- [ ] Otimização de queries do banco de dados
+- [ ] Cache mais inteligente
+- [ ] Lazy loading de dados
+- [ ] Compressão de respostas
+
+#### 11. Sistema de Logs Avançado
+- [ ] Dashboard de logs
+- [ ] Filtros de logs
+- [ ] Exportação de logs
+- [ ] Análise de padrões
+
+#### 12. Sistema de Moderação
+- [ ] Comandos de moderação
+- [ ] Sistema de warns
+- [ ] Sistema de mute/timeout
+- [ ] Logs de moderação
+
+#### 13. Sistema de Tickets/Support
+- [ ] Sistema de tickets
+- [ ] Categorias de tickets
+- [ ] Atribuição automática
+- [ ] Histórico de tickets
+
+#### 14. Integração com APIs Externas
+- [ ] Integração com mais APIs do Roblox
+- [ ] Integração com Discord API avançada
+- [ ] Webhooks para notificações
+- [ ] API REST para integrações externas
+
+#### 15. Sistema de Tradução Completo
+- [ ] Suporte multi-idioma completo
+- [ ] Tradução automática usando API
+- [ ] Cache de traduções
+- [ ] Configuração de idioma por usuário
 
 ---
 
-**Última Atualização:** 2025-01-XX
+## 🎯 Recomendações Imediatas
 
+### Próxima Implementação Sugerida: **Group(s) Check Button**
+
+**Por quê?**
+- É uma funcionalidade crítica do processo de indução
+- Já temos a base (Bloxlink integration)
+- Complementa o sistema de `/process` que já está funcional
+- Alta demanda dos usuários
+
+**O que precisa:**
+1. Integração com Roblox Groups API
+2. Verificação de membros em grupos
+3. Verificação de ranks
+4. Exibição em embed organizada
+
+**Complexidade:** Média
+**Tempo estimado:** 2-3 horas
+
+---
+
+## 📊 Status Geral do Projeto
+
+- **Comandos implementados:** 40+
+- **COGs ativos:** 20
+- **Serviços:** 11
+- **Repositórios:** 6
+- **Documentação:** 127 arquivos
+- **Testes:** Em expansão
+
+---
+
+## 🔄 Melhorias Contínuas
+
+- Monitoramento de performance
+- Otimização de código
+- Expansão de testes
+- Melhoria de documentação
+- Feedback dos usuários
+
+---
+
+**Última atualização:** 2025-11-08
+**Próxima revisão:** Após implementação do Group(s) Check

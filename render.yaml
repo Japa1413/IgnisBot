@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ignisbot
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: 1
+    autoDeploy: true
+

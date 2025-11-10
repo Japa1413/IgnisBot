@@ -37,10 +37,12 @@ class AddPointsCog(commands.Cog):
             # If defer failed, try to send error message
             try:
                 if not interaction.response.is_done():
-                    await interaction.response.send_message(
-                        "❌ Failed to process command. Please try again.",
-                        ephemeral=True
+                    error_embed = discord.Embed(
+                        title="Command Failed",
+                        description="Failed to process command. Please try again.",
+                        color=discord.Color.from_rgb(211, 47, 47)  # Dark red
                     )
+                    await interaction.response.send_message(embed=error_embed, ephemeral=True)
             except Exception:
                 pass
             return
@@ -73,13 +75,42 @@ class AddPointsCog(commands.Cog):
                 logger = get_logger(__name__)
                 logger.warning(f"Error dispatching points_changed event: {event_error}", exc_info=True)
 
-            embed = discord.Embed(title="Points Added", color=discord.Color.green())
-            embed.add_field(name="**User:**", value=f"{member.mention}", inline=True)
-            embed.add_field(name="**Points:**", value=f"{transaction.before} -> {transaction.after}", inline=True)
-            embed.add_field(name="**Reason:**", value=reason, inline=True)
-            footer_icon = getattr(interaction.user.display_avatar, "url", None)
-            embed.set_footer(text=f"{interaction.user.display_name}", icon_url=footer_icon)
+            # Create clean, aesthetic embed without emojis
+            embed = discord.Embed(
+                title="Points Added",
+                color=discord.Color.from_rgb(46, 125, 50)  # Dark green
+            )
+            
+            # Add user avatar as thumbnail
+            if member.avatar:
+                embed.set_thumbnail(url=member.avatar.url)
+            
+            # Add fields in a clean, organized way
+            embed.add_field(
+                name="User",
+                value=member.mention,
+                inline=True
+            )
+            
+            embed.add_field(
+                name="Points",
+                value=f"{transaction.before} → {transaction.after}",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="Reason",
+                value=reason,
+                inline=True
+            )
+            
             embed.timestamp = discord.utils.utcnow()
+            footer_icon = getattr(interaction.user.display_avatar, "url", None)
+            embed.set_footer(
+                text=f"Logged by {interaction.user.display_name}",
+                icon_url=footer_icon
+            )
+            
             await interaction.followup.send(embed=embed)
         except ValueError as e:
             # Handle business logic errors (consent, validation, etc.)
@@ -89,24 +120,95 @@ class AddPointsCog(commands.Cog):
             logger.error(f"ValueError adding points for user {member.id}: {error_msg}", exc_info=True)
             
             if "consent" in error_msg.lower():
-                await interaction.followup.send(
-                    f"❌ {member.mention} has not given consent for data processing (LGPD Art. 7º, I).\n"
-                    f"Please ask them to use `/consent grant` first.",
-                    ephemeral=True
+                # Create clean error embed (no emojis)
+                error_embed = discord.Embed(
+                    title="Consent Required",
+                    description=(
+                        f"{member.mention} has not given consent for data processing (LGPD Art. 7º, I).\n"
+                        f"Please ask them to use `/consent grant` first."
+                    ),
+                    color=discord.Color.from_rgb(255, 152, 0)  # Orange
                 )
+                
+                # Add user avatar
+                if member.avatar:
+                    error_embed.set_thumbnail(url=member.avatar.url)
+                
+                error_embed.timestamp = discord.utils.utcnow()
+                footer_icon = getattr(interaction.user.display_avatar, "url", None)
+                error_embed.set_footer(
+                    text=f"Logged by {interaction.user.display_name}",
+                    icon_url=footer_icon
+                )
+                
+                await interaction.followup.send(embed=error_embed, ephemeral=True)
             elif "not found" in error_msg.lower() or "failed" in error_msg.lower():
-                await interaction.followup.send(f"❌ {error_msg}")
+                error_embed = discord.Embed(
+                    title="Error",
+                    description=error_msg,
+                    color=discord.Color.from_rgb(211, 47, 47)  # Dark red
+                )
+                
+                if member.avatar:
+                    error_embed.set_thumbnail(url=member.avatar.url)
+                
+                error_embed.timestamp = discord.utils.utcnow()
+                footer_icon = getattr(interaction.user.display_avatar, "url", None)
+                error_embed.set_footer(
+                    text=f"Logged by {interaction.user.display_name}",
+                    icon_url=footer_icon
+                )
+                
+                await interaction.followup.send(embed=error_embed)
             else:
-                await interaction.followup.send(f"❌ {error_msg}")
+                error_embed = discord.Embed(
+                    title="Error",
+                    description=error_msg,
+                    color=discord.Color.from_rgb(211, 47, 47)  # Dark red
+                )
+                
+                if member.avatar:
+                    error_embed.set_thumbnail(url=member.avatar.url)
+                
+                error_embed.timestamp = discord.utils.utcnow()
+                footer_icon = getattr(interaction.user.display_avatar, "url", None)
+                error_embed.set_footer(
+                    text=f"Logged by {interaction.user.display_name}",
+                    icon_url=footer_icon
+                )
+                
+                await interaction.followup.send(embed=error_embed)
         except Exception as e:
             # Handle unexpected errors
             from utils.logger import get_logger
             logger = get_logger(__name__)
             logger.error(f"Unexpected error adding points for user {member.id}: {e}", exc_info=True)
-            await interaction.followup.send(
-                f"❌ An unexpected error occurred while adding points: {str(e)}\n"
-                f"Please check the logs for more details."
+            error_embed = discord.Embed(
+                title="Unexpected Error",
+                description=(
+                    f"An unexpected error occurred while adding points.\n"
+                    f"Please check the logs for more details."
+                ),
+                color=discord.Color.from_rgb(211, 47, 47)  # Dark red
             )
+            
+            if member.avatar:
+                error_embed.set_thumbnail(url=member.avatar.url)
+            
+            error_embed.add_field(
+                name="Error Details",
+                value=str(e)[:200],
+                inline=False
+            )
+            
+            error_embed.timestamp = discord.utils.utcnow()
+            footer_icon = getattr(interaction.user.display_avatar, "url", None)
+            error_embed.set_footer(
+                text=f"Logged by {interaction.user.display_name}",
+                icon_url=footer_icon
+            )
+            
+            await interaction.followup.send(embed=error_embed)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(AddPointsCog(bot))
