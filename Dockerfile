@@ -38,6 +38,7 @@ WORKDIR /app
 COPY --from=builder /root/.local /home/ignisbot/.local
 
 # Copy application files
+# Copy everything except what's in .dockerignore
 COPY --chown=ignisbot:ignisbot . .
 
 # Switch to non-root user

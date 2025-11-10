@@ -1,4 +1,4 @@
-# Python
+# Python (keep .py files, only ignore compiled)
 __pycache__/
 *.py[cod]
 *$py.class
