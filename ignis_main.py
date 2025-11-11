@@ -5,14 +5,39 @@ import asyncio
 import sys
 import os
 
+# Debug: Print Python path and directory contents
+print("=== DEBUG: Python Path Setup ===")
+print(f"Current working directory: {os.getcwd()}")
+print(f"Script location: {os.path.dirname(os.path.abspath(__file__))}")
+print(f"Python path before: {sys.path}")
+
 # Ensure /app is in Python path (for Docker/Railway deployment)
 if '/app' not in sys.path:
     sys.path.insert(0, '/app')
+    print("Added /app to sys.path")
 
 # Also ensure current directory is in path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
+    print(f"Added {current_dir} to sys.path")
+
+print(f"Python path after: {sys.path}")
+
+# Debug: Check if utils directory exists
+utils_path = '/app/utils'
+if os.path.exists(utils_path):
+    print(f"✓ {utils_path} exists")
+    print(f"Contents of {utils_path}: {os.listdir(utils_path)}")
+    if os.path.exists(f'{utils_path}/config.py'):
+        print(f"✓ {utils_path}/config.py exists")
+    else:
+        print(f"✗ {utils_path}/config.py MISSING")
+else:
+    print(f"✗ {utils_path} does NOT exist")
+    print(f"Contents of /app: {os.listdir('/app') if os.path.exists('/app') else 'N/A'}")
+
+print("=== End DEBUG ===")
 
 import discord
 from discord.ext import commands
