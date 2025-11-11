@@ -6,60 +6,60 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### 🚀 Deploy 24/7 e Operação Contínua (2025-01-11)
+### 🚀 24/7 Deployment and Continuous Operation (2025-01-11)
 
 #### Added
-- **Deploy no Railway** - Bot agora roda 24/7 na nuvem
-  - Dockerfile otimizado com multi-stage build
-  - Suporte para porta customizada do MySQL (DB_PORT)
-  - Configuração completa de variáveis de ambiente
-  - Healthcheck desabilitado (bot não é servidor HTTP)
-- **Sistema de Monitoramento de Recursos** - Comando `/health` expandido
-  - Uso de memória (RAM) em MB e GB
-  - Uso de CPU em percentual
-  - Uso de GPU (se disponível via pynvml)
-  - Uso de disco em GB
-  - Status detalhado do banco de dados
-- **Documentação de Deployment** - Guias completos
-  - `docs/05_OPERACAO/HOSPEDAGEM_NUVEM.md` - Guia completo de hospedagem
-  - `docs/05_OPERACAO/CONFIGURAR_HOST_MYSQL_RAILWAY.md` - Configuração MySQL
+- **Railway Deployment** - Bot now runs 24/7 in the cloud
+  - Optimized Dockerfile with multi-stage build
+  - Support for custom MySQL port (DB_PORT)
+  - Complete environment variables configuration
+  - Healthcheck disabled (bot is not an HTTP server)
+- **Resource Monitoring System** - Expanded `/health` command
+  - Memory (RAM) usage in MB and GB
+  - CPU usage in percentage
+  - GPU usage (if available via pynvml)
+  - Disk usage in GB
+  - Detailed database status
+- **Deployment Documentation** - Complete guides
+  - `docs/05_OPERACAO/HOSPEDAGEM_NUVEM.md` - Complete hosting guide
+  - `docs/05_OPERACAO/CONFIGURAR_HOST_MYSQL_RAILWAY.md` - MySQL configuration
   - `docs/05_OPERACAO/RESOLVER_ERRO_CONEXAO_BANCO.md` - Troubleshooting
-  - `docs/05_OPERACAO/CORRIGIR_HOST_ERRADO_RAILWAY.md` - Correção de host
-  - `docs/05_OPERACAO/RESOLVER_VARIAVEIS_TEMPLATE_RAILWAY.md` - Variáveis template
+  - `docs/05_OPERACAO/CORRIGIR_HOST_ERRADO_RAILWAY.md` - Host correction
+  - `docs/05_OPERACAO/RESOLVER_VARIAVEIS_TEMPLATE_RAILWAY.md` - Template variables
 
 #### Changed
-- `utils/config.py` - Adicionado suporte para `DB_PORT` customizado
-- `utils/database.py` - Adicionado parâmetro `port` na conexão MySQL
-- `requirements.txt` - Adicionado `cryptography>=41.0.0` para autenticação MySQL
-- `Dockerfile` - Otimizado para produção com multi-stage build
-- `railway.json` - Configuração para Railway com healthcheck desabilitado
+- `utils/config.py` - Added support for custom `DB_PORT`
+- `utils/database.py` - Added `port` parameter to MySQL connection
+- `requirements.txt` - Added `cryptography>=41.0.0` for MySQL authentication
+- `Dockerfile` - Optimized for production with multi-stage build
+- `railway.json` - Railway configuration with healthcheck disabled
 
 #### Fixed
-- **ModuleNotFoundError** - Corrigido problema de importação de `utils.config` no Docker
-- **Erro de conexão MySQL** - Corrigido uso de host incorreto (ignisbot.railway.internal → host do MySQL)
-- **Autenticação MySQL** - Adicionado pacote `cryptography` para `caching_sha2_password`
-- **Porta customizada** - Adicionado suporte para portas não-padrão do MySQL
+- **ModuleNotFoundError** - Fixed `utils.config` import issue in Docker
+- **MySQL Connection Error** - Fixed incorrect host usage (ignisbot.railway.internal → MySQL host)
+- **MySQL Authentication** - Added `cryptography` package for `caching_sha2_password`
+- **Custom Port** - Added support for non-standard MySQL ports
 
 #### Files Added
-- `Dockerfile` - Containerização do bot
-- `railway.json` - Configuração Railway
-- `render.yaml` - Configuração Render (alternativa)
-- `docker-compose.yml` - Compose para desenvolvimento
-- `.dockerignore` - Arquivos ignorados no build
-- `docs/05_OPERACAO/HOSPEDAGEM_NUVEM.md` - Guia de hospedagem
-- `docs/05_OPERACAO/CONFIGURAR_HOST_MYSQL_RAILWAY.md` - Config MySQL
+- `Dockerfile` - Bot containerization
+- `railway.json` - Railway configuration
+- `render.yaml` - Render configuration (alternative)
+- `docker-compose.yml` - Development compose
+- `.dockerignore` - Files ignored in build
+- `docs/05_OPERACAO/HOSPEDAGEM_NUVEM.md` - Hosting guide
+- `docs/05_OPERACAO/CONFIGURAR_HOST_MYSQL_RAILWAY.md` - MySQL config
 - `docs/05_OPERACAO/RESOLVER_ERRO_CONEXAO_BANCO.md` - Troubleshooting
-- `docs/05_OPERACAO/CORRIGIR_HOST_ERRADO_RAILWAY.md` - Correção host
-- `docs/05_OPERACAO/RESOLVER_VARIAVEIS_TEMPLATE_RAILWAY.md` - Variáveis
-- `docs/05_OPERACAO/COPIAR_VARIAVEIS_MYSQL_RAILWAY.md` - Guia visual
-- `docs/05_OPERACAO/CONECTAR_BANCO_SEM_SERVICE_CONNECTIONS.md` - Conexão alternativa
+- `docs/05_OPERACAO/CORRIGIR_HOST_ERRADO_RAILWAY.md` - Host correction
+- `docs/05_OPERACAO/RESOLVER_VARIAVEIS_TEMPLATE_RAILWAY.md` - Template variables
+- `docs/05_OPERACAO/COPIAR_VARIAVEIS_MYSQL_RAILWAY.md` - Visual guide
+- `docs/05_OPERACAO/CONECTAR_BANCO_SEM_SERVICE_CONNECTIONS.md` - Alternative connection
 
 #### Files Changed
-- `utils/config.py` - Adicionado `DB_PORT`
-- `utils/database.py` - Adicionado suporte para porta customizada
-- `requirements.txt` - Adicionado `cryptography`
-- `utils/health_check.py` - Adicionado `check_system_resources()`
-- `cogs/health.py` - Expandido para mostrar recursos do sistema
+- `utils/config.py` - Added `DB_PORT`
+- `utils/database.py` - Added support for custom port
+- `requirements.txt` - Added `cryptography`
+- `utils/health_check.py` - Added `check_system_resources()`
+- `cogs/health.py` - Expanded to show system resources
 
 ---
 
@@ -171,206 +171,206 @@ All notable changes to this project will be documented in this file.
 
 ## [Previous Releases]
 
-### ✅ Fase 1: Sistema de Gamificação Disruptiva (2025-10-31)
+### ✅ Phase 1: Disruptive Gamification System (2025-10-31)
 
-#### Core XP System Implementado
-- ✅ **Sistema de XP Multi-Source** - XP separado de pontos
-  - Voice: +10 XP/min (limitado a 500 XP/dia)
-  - Messages: +1 XP/mensagem (limitado a 50 XP/dia)
-  - Auto-tracking automático
+#### Core XP System Implemented
+- ✅ **Multi-Source XP System** - XP separate from points
+  - Voice: +10 XP/min (limited to 500 XP/day)
+  - Messages: +1 XP/message (limited to 50 XP/day)
+  - Automatic tracking
 
-- ✅ **Sistema de Níveis Independente**
-  - Fórmula exponencial: `XP = 100 * level^1.5`
-  - Níveis separados de ranks
-  - Detecção automática de level up
+- ✅ **Independent Level System**
+  - Exponential formula: `XP = 100 * level^1.5`
+  - Levels separate from ranks
+  - Automatic level up detection
 
-- ✅ **Event Handlers Automáticos**
-  - `on_message()` - Ganho de XP por mensagens
-  - `on_voice_state_update()` - Ganho de XP por voice channels
-  - Validação de consentimento (LGPD)
-  - Daily limits aplicados
+- ✅ **Automatic Event Handlers**
+  - `on_message()` - XP gain from messages
+  - `on_voice_state_update()` - XP gain from voice channels
+  - Consent validation (LGPD)
+  - Daily limits applied
 
-- ✅ **Banco de Dados**
-  - 4 novas tabelas: `user_progression`, `xp_events`, `daily_xp_limits`, `level_rewards`
-  - Migrations integradas em `utils/database.py`
+- ✅ **Database**
+  - 4 new tables: `user_progression`, `xp_events`, `daily_xp_limits`, `level_rewards`
+  - Migrations integrated in `utils/database.py`
 
-- ✅ **Repositories e Services**
-  - `XPRepository` - Operações de XP
-  - `ProgressionRepository` - Progressão e níveis
-  - `XPService` - Lógica de XP com daily limits
-  - `LevelService` - Cálculo e atualização de níveis
+- ✅ **Repositories and Services**
+  - `XPRepository` - XP operations
+  - `ProgressionRepository` - Progression and levels
+  - `XPService` - XP logic with daily limits
+  - `LevelService` - Level calculation and update
 
-- ✅ **Script de Migração**
-  - `scripts/migrate_to_gamification.py` - Converte pontos → XP
+- ✅ **Migration Script**
+  - `scripts/migrate_to_gamification.py` - Converts points → XP
 
-#### Documentação
-- ✅ `PROPOSTA_GAMIFICACAO_DISRUPTIVA.md` - Proposta completa
-- ✅ `RESUMO_EXECUTIVO_GAMIFICACAO.md` - Resumo executivo
-- ✅ `FASE1_GAMIFICACAO_IMPLEMENTADA.md` - Documentação da implementação
-- ✅ `GUIA_ATIVACAO_GAMIFICACAO.md` - Guia de ativação
+#### Documentation
+- ✅ `PROPOSTA_GAMIFICACAO_DISRUPTIVA.md` - Complete proposal
+- ✅ `RESUMO_EXECUTIVO_GAMIFICACAO.md` - Executive summary
+- ✅ `FASE1_GAMIFICACAO_IMPLEMENTADA.md` - Implementation documentation
+- ✅ `GUIA_ATIVACAO_GAMIFICACAO.md` - Activation guide
 
 ### Added
-- `repositories/xp_repository.py` - Repository de XP
-- `repositories/progression_repository.py` - Repository de progressão
-- `services/xp_service.py` - Service de XP
-- `services/level_service.py` - Service de níveis
-- `events/gamification_handlers.py` - Event handlers automáticos
+- `repositories/xp_repository.py` - XP repository
+- `repositories/progression_repository.py` - Progression repository
+- `services/xp_service.py` - XP service
+- `services/level_service.py` - Level service
+- `events/gamification_handlers.py` - Automatic event handlers
 - `migrations/001_gamification_core.sql` - SQL migrations
-- `scripts/migrate_to_gamification.py` - Script de migração
+- `scripts/migrate_to_gamification.py` - Migration script
 
 ### Changed
-- `utils/database.py` - Tabelas de gamificação criadas automaticamente
-- `ignis_main.py` - Gamification handlers carregados
-- `domain/protocols.py` - Novos Protocols para gamificação
-- `repositories/__init__.py` - Novos repositories exportados
-- `services/__init__.py` - Novos services exportados
+- `utils/database.py` - Gamification tables created automatically
+- `ignis_main.py` - Gamification handlers loaded
+- `domain/protocols.py` - New Protocols for gamification
+- `repositories/__init__.py` - New repositories exported
+- `services/__init__.py` - New services exported
 
 ---
 
-### ✅ Expansão de Testes (2025-10-31)
+### ✅ Test Expansion (2025-10-31)
 
-#### Novos Arquivos de Teste
-- ✅ **`test_consent_service.py`** criado - 9 testes
-- ✅ **`test_audit_service.py`** criado - 9 testes
-- ✅ **`test_user_service.py`** criado - 7 testes
+#### New Test Files
+- ✅ **`test_consent_service.py`** created - 9 tests
+- ✅ **`test_audit_service.py`** created - 9 tests
+- ✅ **`test_user_service.py`** created - 7 tests
 
-#### Testes Expandidos
-- ✅ **`test_points_service.py`** expandido - +5 testes (validação LGPD, consentimento)
-- ✅ **`test_cache_service.py`** expandido - +3 testes (TTL, estatísticas, múltiplos usuários)
-- ✅ **`test_user_repository.py`** expandido - +5 testes (edge cases, cache)
+#### Expanded Tests
+- ✅ **`test_points_service.py`** expanded - +5 tests (LGPD validation, consent)
+- ✅ **`test_cache_service.py`** expanded - +3 tests (TTL, statistics, multiple users)
+- ✅ **`test_user_repository.py`** expanded - +5 tests (edge cases, cache)
 
-#### Correções
-- ✅ Bug corrigido em `UserRepository.update_points` (acesso incorreto ao cache)
+#### Fixes
+- ✅ Bug fixed in `UserRepository.update_points` (incorrect cache access)
 
-#### Estatísticas
-- **Testes Totais:** ~50 (era ~13)
-- **Cobertura Estimada:** 60-70% (era ~30%)
-- **Testes Adicionados:** +37
+#### Statistics
+- **Total Tests:** ~50 (was ~13)
+- **Estimated Coverage:** 60-70% (was ~30%)
+- **Tests Added:** +37
 
 ### Added
-- `tests/test_consent_service.py` - Testes completos de consentimento
-- `tests/test_audit_service.py` - Testes completos de auditoria
-- `tests/test_user_service.py` - Testes completos de serviço de usuário
+- `tests/test_consent_service.py` - Complete consent tests
+- `tests/test_audit_service.py` - Complete audit tests
+- `tests/test_user_service.py` - Complete user service tests
 
 ### Changed
-- `tests/test_points_service.py`: +5 testes (validação LGPD)
-- `tests/test_cache_service.py`: +3 testes (TTL, estatísticas)
-- `tests/test_user_repository.py`: +5 testes (edge cases)
-- `repositories/user_repository.py`: Correção de bug em `update_points`
+- `tests/test_points_service.py`: +5 tests (LGPD validation)
+- `tests/test_cache_service.py`: +3 tests (TTL, statistics)
+- `tests/test_user_repository.py`: +5 tests (edge cases)
+- `repositories/user_repository.py`: Bug fix in `update_points`
 
 ---
 
-### ✅ Melhorias Incrementais de Arquitetura (2025-10-31)
+### ✅ Incremental Architecture Improvements (2025-10-31)
 
-#### Type Safety e Testabilidade
-- ✅ **Protocols para Type Hints** criados (`domain/protocols.py`)
+#### Type Safety and Testability
+- ✅ **Protocols for Type Hints** created (`domain/protocols.py`)
   - `UserRepositoryProtocol`, `AuditRepositoryProtocol`, `ConsentRepositoryProtocol`
   - `CacheServiceProtocol`, `ConsentServiceProtocol`, `EventDispatcherProtocol`
-  - Type safety melhorado (60% → 85%)
-  - Zero overhead em runtime
+  - Improved type safety (60% → 85%)
+  - Zero runtime overhead
 
-- ✅ **Injeção de Dependências Manual** implementada
+- ✅ **Manual Dependency Injection** implemented
   - `PointsService`, `UserService`, `ConsentService`, `AuditService`
-  - Compatibilidade retroativa mantida (defaults preservados)
-  - Facilita testes e mocks
+  - Backward compatibility maintained (defaults preserved)
+  - Facilitates testing and mocks
 
-- ✅ **Testes Atualizados** para usar DI
-  - `tests/test_points_service.py` agora usa injeção de dependências
-  - Mocks com `spec=Protocol` para type safety
+- ✅ **Tests Updated** to use DI
+  - `tests/test_points_service.py` now uses dependency injection
+  - Mocks with `spec=Protocol` for type safety
 
-#### Configuração
-- ✅ **pytest.ini** atualizado com coverage
-  - Relatórios HTML e terminal
+#### Configuration
+- ✅ **pytest.ini** updated with coverage
+  - HTML and terminal reports
   - Fail under 30% (baseline)
 
-#### Documentação
-- ✅ `docs/03_DESENVOLVIMENTO/MELHORIAS_INCREMENTAIS.md` - Guia completo
-- ✅ `docs/04_TESTES/GUIA_EXPANDIR_TESTES.md` - Plano de expansão
-- ✅ `docs/02_ARQUITETURA/ANALISE_MIGRACAO_HEXAGONAL.md` - Análise completa
+#### Documentation
+- ✅ `docs/03_DESENVOLVIMENTO/MELHORIAS_INCREMENTAIS.md` - Complete guide
+- ✅ `docs/04_TESTES/GUIA_EXPANDIR_TESTES.md` - Expansion plan
+- ✅ `docs/02_ARQUITETURA/ANALISE_MIGRACAO_HEXAGONAL.md` - Complete analysis
 
 ### Changed
-- `services/points_service.py`: Suporte a injeção de dependências
-- `services/user_service.py`: Suporte a injeção de dependências
-- `services/consent_service.py`: Suporte a injeção de dependências
-- `services/audit_service.py`: Suporte a injeção de dependências
-- `tests/test_points_service.py`: Usa DI para mocks
+- `services/points_service.py`: Dependency injection support
+- `services/user_service.py`: Dependency injection support
+- `services/consent_service.py`: Dependency injection support
+- `services/audit_service.py`: Dependency injection support
+- `tests/test_points_service.py`: Uses DI for mocks
 
 ### Added
-- `domain/protocols.py` - Protocols para type safety
-- `domain/__init__.py` - Exportações do módulo domain
+- `domain/protocols.py` - Protocols for type safety
+- `domain/__init__.py` - Domain module exports
 
 ---
 
-### ✅ Correções de Auditoria (2025-10-31)
+### ✅ Audit Corrections (2025-10-31)
 
-#### Segurança e Conformidade LGPD
-- ✅ **Implementada validação de consentimento obrigatória** em operações de pontos
-  - Comandos `/add`, `/remove` e `/vc_log` agora validam consentimento antes de processar
-  - Raise `ValueError` com mensagem clara se consentimento não dado
-  - Logging de tentativas sem consentimento
-  - Resolve FINDING #7 (Crítico)
+#### Security and LGPD Compliance
+- ✅ **Mandatory consent validation implemented** in points operations
+  - Commands `/add`, `/remove` and `/vc_log` now validate consent before processing
+  - Raise `ValueError` with clear message if consent not given
+  - Logging of attempts without consent
+  - Resolves FINDING #7 (Critical)
 
-- ✅ **Validação de consentimento no leaderboard**
-  - Query SQL filtra apenas usuários com consentimento ativo
-  - Conformidade com LGPD Art. 7º, I
+- ✅ **Consent validation in leaderboard**
+  - SQL query filters only users with active consent
+  - Compliance with LGPD Art. 7º, I
 
-#### Documentação
-- ✅ **Padronização de datas e versões**
-  - Script `update_documentation_dates.py` criado
-  - 24 documentos atualizados para 2025-10-31
-  - Versões atualizadas (ARQUITETURA: 1.0 → 2.0, LGPD: 1.0 → 2.0)
+#### Documentation
+- ✅ **Date and version standardization**
+  - Script `update_documentation_dates.py` created
+  - 24 documents updated to 2025-10-31
+  - Versions updated (ARCHITECTURE: 1.0 → 2.0, LGPD: 1.0 → 2.0)
 
-- ✅ **Unificação de status de conformidade LGPD**
-  - Status padronizado para **95%** em todos os documentos
+- ✅ **LGPD compliance status unification**
+  - Status standardized to **95%** in all documents
 
-- ✅ **Novos documentos criados**
-  - `GOVERNANCA_DADOS.md` - Template para Controlador e DPO
-  - `RASTREABILIDADE_LEGAL.md` - Matriz completa funcionalidade → código → LGPD
-  - `BASE_LEGAL_MATRIZ.md` - Matriz de base legal
-  - `POLITICA_RETENCAO_LOGS.md` - Política de retenção
-  - `PROCESSO_CORRECAO_DADOS.md` - Processo de correção
-  - `VALIDACAO_INCIDENTES.md` - Checklist de validação
-  - `PLANO_DEPRECACAO.md` - Plano de remoção de código deprecated
-  - `ANALISE_MATURIDADE_REAL.md` - Análise de maturidade real
+- ✅ **New documents created**
+  - `GOVERNANCA_DADOS.md` - Template for Controller and DPO
+  - `RASTREABILIDADE_LEGAL.md` - Complete functionality → code → LGPD matrix
+  - `BASE_LEGAL_MATRIZ.md` - Legal basis matrix
+  - `POLITICA_RETENCAO_LOGS.md` - Retention policy
+  - `PROCESSO_CORRECAO_DADOS.md` - Data correction process
+  - `VALIDACAO_INCIDENTES.md` - Validation checklist
+  - `PLANO_DEPRECACAO.md` - Deprecated code removal plan
+  - `ANALISE_MATURIDADE_REAL.md` - Real maturity analysis
 
-#### Funcionalidades
-- ✅ **Script de limpeza de logs de auditoria**
-  - `scripts/cleanup_audit_logs.py` criado
-  - Remove logs > 6 meses automaticamente
-  - Documentação de agendamento
+#### Features
+- ✅ **Audit log cleanup script**
+  - `scripts/cleanup_audit_logs.py` created
+  - Removes logs > 6 months automatically
+  - Scheduling documentation
 
-- ✅ **Warnings de deprecação** adicionados
-  - Data de remoção definida (2025-12-31)
-  - Documentação clara de alternativas
+- ✅ **Deprecation warnings** added
+  - Removal date defined (2025-12-31)
+  - Clear documentation of alternatives
 
 ### Changed
-- `services/points_service.py`: Validação de consentimento obrigatória
-- `cogs/add.py`: Tratamento melhorado de erros de consentimento
-- `cogs/remove.py`: Tratamento melhorado de erros de consentimento
-- `cogs/vc_log.py`: Validação de consentimento explícita
-- `cogs/leaderboard.py`: Query SQL com filtro de consentimento
-- Documentos de arquitetura atualizados
+- `services/points_service.py`: Mandatory consent validation
+- `cogs/add.py`: Improved consent error handling
+- `cogs/remove.py`: Improved consent error handling
+- `cogs/vc_log.py`: Explicit consent validation
+- `cogs/leaderboard.py`: SQL query with consent filter
+- Architecture documents updated
 
 ### Added
-- `scripts/cleanup_audit_logs.py` - Limpeza automática de logs
-- `scripts/update_documentation_dates.py` - Padronização de datas
-- `scripts/validate_consent_on_startup.py` - Validação de consentimento
-- `scripts/validate_incident_plan.py` - Validação de plano de incidentes
-- `scripts/find_all_placeholders.py` - Encontrar placeholders
-- Múltiplos documentos de compliance e governança
+- `scripts/cleanup_audit_logs.py` - Automatic log cleanup
+- `scripts/update_documentation_dates.py` - Date standardization
+- `scripts/validate_consent_on_startup.py` - Consent validation
+- `scripts/validate_incident_plan.py` - Incident plan validation
+- `scripts/find_all_placeholders.py` - Find placeholders
+- Multiple compliance and governance documents
 
 ---
 
 ## [1.0.0] - 2025-10-31
 
 ### Initial Release
-- Sistema de gamificação completo
-- Conformidade LGPD implementada
-- Arquitetura Layered + Event-Driven
-- Sistema de cache com TTL
-- Testes unitários básicos
-- Type safety com Protocols
-- Injeção de dependências manual
+- Complete gamification system
+- LGPD compliance implemented
+- Layered + Event-Driven architecture
+- Cache system with TTL
+- Basic unit tests
+- Type safety with Protocols
+- Manual dependency injection
 
 ---
 
