@@ -43,17 +43,49 @@ def parse_markdown_section(content: str, section_title: str) -> List[str]:
     
     if match:
         section_content = match.group(1)
-        # Extract list items (lines starting with -, *, or numbered)
-        item_pattern = r"[-*]\s+(.+?)(?=\n[-*]|\n\n|\Z)"
-        items = re.findall(item_pattern, section_content, re.MULTILINE)
+        
+        # First, extract main items with bold titles (e.g., "- **Title**")
+        # This captures the main feature/fix titles
+        bold_item_pattern = r"[-*]\s+\*\*(.+?)\*\*"
+        bold_items = re.findall(bold_item_pattern, section_content, re.MULTILINE)
+        items.extend([item.strip() for item in bold_items if item.strip()])
+        
+        # Then extract regular list items (lines starting with -, *)
+        # But skip items that are sub-items (indented with spaces)
+        item_pattern = r"^[-*]\s+(?!\*\*)(.+?)(?=\n|$)"
+        regular_items = re.findall(item_pattern, section_content, re.MULTILINE)
+        # Filter out items that are sub-items (have leading spaces before - or *)
+        for item in regular_items:
+            # Check if this line is indented (sub-item)
+            line_match = re.search(rf"^[-*]\s+{re.escape(item)}", section_content, re.MULTILINE)
+            if line_match:
+                line_start = line_match.start()
+                # Check if there are spaces before the - or *
+                before_match = section_content[:line_start]
+                if before_match and before_match[-1] not in ['\n', '\r']:
+                    # This is likely a continuation, skip
+                    continue
+                # Check if line starts with spaces (indented)
+                line_before = section_content[max(0, line_start-10):line_start]
+                if not line_before.strip() or line_before.strip() == '':
+                    # This is a top-level item
+                    items.append(item.strip())
+        
         # Also try numbered lists
         numbered_pattern = r"^\d+\.\s+(.+?)$"
         numbered_items = re.findall(numbered_pattern, section_content, re.MULTILINE)
-        items.extend(numbered_items)
+        items.extend([item.strip() for item in numbered_items if item.strip()])
     
-    # Clean items
-    items = [item.strip() for item in items if item.strip()]
-    return items
+    # Clean items and remove duplicates
+    cleaned_items = []
+    seen = set()
+    for item in items:
+        item_clean = item.strip()
+        if item_clean and item_clean.lower() not in seen:
+            seen.add(item_clean.lower())
+            cleaned_items.append(item_clean)
+    
+    return cleaned_items
 
 
 def extract_features(content: str) -> List[str]:
@@ -198,11 +230,19 @@ def get_latest_roadmap_data() -> Dict[str, any]:
     if CHANGELOG_FILE.exists():
         changelog_content = read_documentation_file(CHANGELOG_FILE)
         if changelog_content:
-            # Look for date patterns - get the FIRST (most recent) date
-            date_pattern = r"##\s+\[?(\d{4}-\d{2}-\d{2})\]?"
-            dates = re.findall(date_pattern, changelog_content)
-            if dates:
-                latest_date = dates[0]  # First date is most recent
+            # First check for "Unreleased" section
+            if "[Unreleased]" in changelog_content:
+                # Look for date in Unreleased section (e.g., "### 🚀 Title (2025-01-11)")
+                unreleased_date_pattern = r"###\s+.*?\((\d{4}-\d{2}-\d{2})\)"
+                unreleased_dates = re.findall(unreleased_date_pattern, changelog_content)
+                if unreleased_dates:
+                    latest_date = unreleased_dates[0]  # Most recent date in Unreleased
+            else:
+                # Look for date patterns - get the FIRST (most recent) date
+                date_pattern = r"##\s+\[?(\d{4}-\d{2}-\d{2})\]?"
+                dates = re.findall(date_pattern, changelog_content)
+                if dates:
+                    latest_date = dates[0]  # First date is most recent
     
     # Also check for "Unreleased" section which is always most recent
     if CHANGELOG_FILE.exists():
@@ -227,31 +267,59 @@ def get_latest_roadmap_data() -> Dict[str, any]:
                     changed_items = re.findall(r"[-*]\s+(.+?)(?=\n[-*]|\n\n|\Z)", changed_match.group(1), re.MULTILINE)
                     fixes.extend([item.strip() for item in changed_items if item.strip()])
     
-    # Remove duplicates while preserving order
+    # Clean and remove duplicates while preserving order
+    def clean_item(item: str) -> str:
+        """Clean markdown formatting from items."""
+        # Remove bold markers
+        item = re.sub(r'\*\*(.+?)\*\*', r'\1', item)
+        # Remove code blocks
+        item = re.sub(r'`(.+?)`', r'\1', item)
+        # Remove links [text](url) -> text
+        item = re.sub(r'\[(.+?)\]\(.+?\)', r'\1', item)
+        # Remove checkmarks and emojis at start
+        item = re.sub(r'^[✅❌🔧✨📋🎯🚀\s]+', '', item)
+        # Clean whitespace
+        item = item.strip()
+        return item
+    
+    # Clean all items first
+    features = [clean_item(item) for item in features if clean_item(item)]
+    fixes = [clean_item(item) for item in fixes if clean_item(item)]
+    upcoming = [clean_item(item) for item in upcoming if clean_item(item)]
+    
+    # Remove duplicates while preserving order (case-insensitive, normalized)
+    def normalize_for_dedup(text: str) -> str:
+        """Normalize text for duplicate detection."""
+        # Remove special chars, lowercase, strip
+        normalized = re.sub(r'[^\w\s]', '', text.lower().strip())
+        # Remove extra spaces
+        normalized = re.sub(r'\s+', ' ', normalized)
+        return normalized
+    
     seen_features = set()
     unique_features = []
     for item in features:
-        item_lower = item.lower()
-        if item_lower not in seen_features:
-            seen_features.add(item_lower)
+        norm = normalize_for_dedup(item)
+        if norm and norm not in seen_features and len(norm) > 3:  # Minimum length
+            seen_features.add(norm)
             unique_features.append(item)
     features = unique_features
     
     seen_fixes = set()
     unique_fixes = []
     for item in fixes:
-        item_lower = item.lower()
-        if item_lower not in seen_fixes:
-            seen_fixes.add(item_lower)
+        norm = normalize_for_dedup(item)
+        if norm and norm not in seen_fixes and len(norm) > 3:  # Minimum length
+            seen_fixes.add(norm)
             unique_fixes.append(item)
     fixes = unique_fixes
     
     seen_upcoming = set()
     unique_upcoming = []
     for item in upcoming:
-        item_lower = item.lower()
-        if item_lower not in seen_upcoming:
-            seen_upcoming.add(item_lower)
+        norm = normalize_for_dedup(item)
+        if norm and norm not in seen_upcoming and len(norm) > 3:  # Minimum length
+            seen_upcoming.add(norm)
             unique_upcoming.append(item)
     upcoming = unique_upcoming
     

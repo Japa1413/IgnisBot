@@ -14,6 +14,7 @@ from discord import app_commands
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 import hashlib
+import re
 
 from utils.checks import appcmd_moderator_or_owner
 from utils.logger import get_logger
@@ -41,6 +42,7 @@ class RoadmapCog(commands.Cog):
         self.bot = bot
         self.last_roadmap_post: Optional[datetime] = None
         self.last_roadmap_hash: Optional[str] = None
+        self.startup_posted: bool = False  # Flag to ensure only one post on startup
         # Start automatic posting task
         self.auto_post_roadmap.start()
     
@@ -154,21 +156,49 @@ class RoadmapCog(commands.Cog):
                 ephemeral=True
             )
     
-    async def _check_if_message_exists(self, channel: discord.TextChannel, title: str) -> bool:
+    async def _check_if_message_exists(self, channel: discord.TextChannel, title: str, check_recent: bool = True) -> bool:
         """
         Check if a message with the same title already exists in the channel.
+        
+        Args:
+            channel: The channel to check
+            title: The title to search for
+            check_recent: If True, only check messages from last 5 minutes
         
         Returns:
             True if message exists, False otherwise
         """
         try:
-            # Check last 20 messages to avoid duplicates
-            async for message in channel.history(limit=20):
+            # For recent check, only look at last 10 messages from last 5 minutes
+            limit = 10 if check_recent else 20
+            cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=5) if check_recent else None
+            
+            async for message in channel.history(limit=limit):
+                # Skip if checking recent and message is too old
+                if check_recent and cutoff_time and message.created_at < cutoff_time:
+                    continue
+                    
                 if message.author == self.bot.user and message.embeds:
                     for embed in message.embeds:
-                        if embed.title and title in embed.title:
-                            logger.debug(f"[ROADMAP] Found existing message with title: {embed.title}")
-                            return True
+                        if embed.title:
+                            # Check if titles match (normalize for comparison)
+                            embed_title_clean = embed.title.replace("🚀", "").strip()
+                            title_clean = title.replace("🚀", "").strip()
+                            
+                            # Check if titles are similar (same base title)
+                            if title_clean in embed_title_clean or embed_title_clean in title_clean:
+                                logger.debug(f"[ROADMAP] Found existing message with title: {embed.title}")
+                                return True
+                            
+                            # Also check if it's the same date-based title
+                            if "Development Update" in embed_title_clean and "Development Update" in title_clean:
+                                # Extract dates and compare
+                                date_pattern = r"(\d{4}-\d{2}-\d{2})"
+                                embed_date = re.search(date_pattern, embed_title_clean)
+                                title_date = re.search(date_pattern, title_clean)
+                                if embed_date and title_date and embed_date.group(1) == title_date.group(1):
+                                    logger.debug(f"[ROADMAP] Found existing message with same date: {embed.title}")
+                                    return True
         except Exception as e:
             logger.warning(f"[ROADMAP] Error checking channel history: {e}")
         
@@ -202,12 +232,21 @@ class RoadmapCog(commands.Cog):
                 logger.error(f"[ROADMAP] Channel {ROADMAP_CHANNEL_ID} not found")
                 return False
             
-            # Check if message with same title already exists (only if not forcing)
-            if not force_post:
-                if await self._check_if_message_exists(roadmap_channel, roadmap_data['title']):
-                    logger.info(f"[ROADMAP] Message with title '{roadmap_data['title']}' already exists, skipping to avoid duplicate")
-                    # Update hash to prevent repeated checks
-                    self.last_roadmap_hash = current_hash
+            # Check if message with same title already exists
+            # For force_post, check recent messages (last 5 minutes)
+            # For normal post, check all recent messages
+            check_recent = force_post  # Only check recent for force_post
+            if await self._check_if_message_exists(roadmap_channel, roadmap_data['title'], check_recent=check_recent):
+                logger.info(f"[ROADMAP] Message with title '{roadmap_data['title']}' already exists, skipping to avoid duplicate")
+                # Update hash to prevent repeated checks
+                self.last_roadmap_hash = current_hash
+                return False
+            
+            # Additional check: if we posted very recently (within last 2 minutes), skip
+            if self.last_roadmap_post:
+                time_since_last = datetime.now(timezone.utc) - self.last_roadmap_post
+                if time_since_last < timedelta(minutes=2):
+                    logger.info(f"[ROADMAP] Posted recently ({time_since_last.total_seconds():.0f}s ago), skipping to avoid duplicate")
                     return False
             
             # Check if roadmap has changed since last post (unless forced)
@@ -215,11 +254,10 @@ class RoadmapCog(commands.Cog):
                 logger.debug(f"[ROADMAP] No changes detected (hash: {current_hash[:8]}...), skipping auto-post")
                 return False
             
-            # If forced post but content is same, generate unique content
+            # If forced post but content is same, use original title (don't add timestamp)
+            # The duplicate check above will prevent multiple posts
             if force_post and current_hash == self.last_roadmap_hash:
-                # Add timestamp to make it unique
-                roadmap_data['title'] = f"{roadmap_data['title']} - {datetime.now(timezone.utc).strftime('%H:%M UTC')}"
-                logger.info(f"[ROADMAP] Force post with same content, adding timestamp to title")
+                logger.info(f"[ROADMAP] Force post with same content, using original title")
             
             logger.info(f"[ROADMAP] Posting roadmap update. Old hash: {self.last_roadmap_hash[:8] if self.last_roadmap_hash else 'None'}..., New hash: {current_hash[:8]}...")
             
@@ -329,8 +367,21 @@ class RoadmapCog(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         """Post roadmap on bot startup - always post with latest information."""
+        # Prevent multiple posts on reconnection
+        if self.startup_posted:
+            logger.debug("[ROADMAP] Startup post already done, skipping")
+            return
+        
         # Wait a bit for everything to initialize
         await asyncio.sleep(30)  # Wait 30 seconds after ready
+        
+        # Check if bot is actually ready (not a reconnection)
+        if not self.bot.is_ready():
+            logger.debug("[ROADMAP] Bot not ready yet, skipping startup post")
+            return
+        
+        # Mark as posted BEFORE posting to prevent race conditions
+        self.startup_posted = True
         
         # Always post on startup (force_post=True) to ensure latest info is shared
         logger.info("[ROADMAP] Posting roadmap update on startup (forced)...")
