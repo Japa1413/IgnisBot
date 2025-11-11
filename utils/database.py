@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import aiomysql
 from typing import Optional
-from utils.config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_POOL_MIN, DB_POOL_MAX
+from utils.config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, DB_POOL_MIN, DB_POOL_MAX
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -13,6 +13,7 @@ _POOL: Optional[aiomysql.Pool] = None
 
 _CONN_KW = dict(
     host=DB_HOST,
+    port=DB_PORT,
     user=DB_USER,
     password=DB_PASSWORD,
     db=DB_NAME,

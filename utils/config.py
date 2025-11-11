@@ -64,6 +64,7 @@ DB_HOST = _get_env("DB_HOST", default="localhost")
 DB_USER = _get_env("DB_USER", required=True)
 DB_PASSWORD = _get_env("DB_PASSWORD", required=True)
 DB_NAME = _get_env("DB_NAME", default="ignis")
+DB_PORT = int(_get_env("DB_PORT", default="3306"))
 
 # OPTIMIZAÇÃO FASE 2: Pool de conexões configurável
 DB_POOL_MIN = int(_get_env("DB_POOL_MIN", default="2"))
