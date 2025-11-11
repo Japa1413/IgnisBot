@@ -45,6 +45,7 @@ venv.bak/
 # Railway Variables (contém informações sensíveis)
 RAILWAY_VARIABLES.txt
 RAILWAY_VARIABLES.json
+RAILWAY_VARIABLES_ATUALIZADO.txt
 
 # Logs
 *.log
