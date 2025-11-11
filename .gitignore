@@ -58,7 +58,9 @@ logs/
 *.sqlite3
 
 # Credentials and Secrets (CRÍTICO)
-config.py
+# Note: utils/config.py is NOT ignored - it's needed for the application
+# Only ignore config.py in root directory
+/config.py
 secrets.py
 credentials.json
 *.key
