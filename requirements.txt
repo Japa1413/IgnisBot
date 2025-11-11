@@ -6,6 +6,7 @@ discord.py>=2.3.0
 
 # Database
 aiomysql>=0.2.0
+cryptography>=41.0.0  # Required for MySQL caching_sha2_password authentication
 
 # Environment Variables
 python-dotenv>=1.0.0
