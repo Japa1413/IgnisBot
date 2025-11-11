@@ -408,24 +408,29 @@ class RoadmapCog(commands.Cog):
     
     async def _post_on_startup(self):
         """Post roadmap on bot startup - called from setup_hook with delay."""
+        logger.info("[ROADMAP] _post_on_startup called")
+        
         # Use bot-level flag to prevent multiple cogs from posting
         if not hasattr(self.bot, 'roadmap_startup_posted'):
             self.bot.roadmap_startup_posted = False
         
         # Prevent multiple posts
         if self.bot.roadmap_startup_posted or self.startup_posted:
-            logger.debug("[ROADMAP] Startup post already done, skipping")
+            logger.warning(f"[ROADMAP] Startup post already done (bot.roadmap_startup_posted={self.bot.roadmap_startup_posted}, self.startup_posted={self.startup_posted}), skipping")
             return
         
+        logger.info("[ROADMAP] Waiting for bot to be ready...")
         # Wait for bot to be fully ready
         await self.bot.wait_until_ready()
+        logger.info("[ROADMAP] Bot is ready, waiting 35 seconds for all cogs to load...")
         await asyncio.sleep(35)  # Wait 35 seconds after ready for all cogs to load
         
         # Double-check bot is ready
         if not self.bot.is_ready():
-            logger.debug("[ROADMAP] Bot not ready yet, skipping startup post")
+            logger.warning("[ROADMAP] Bot not ready yet, skipping startup post")
             return
         
+        logger.info("[ROADMAP] Marking startup as posted (before actual post to prevent race conditions)")
         # Mark as posted BEFORE posting to prevent race conditions (both flags)
         self.bot.roadmap_startup_posted = True
         self.startup_posted = True
@@ -437,7 +442,7 @@ class RoadmapCog(commands.Cog):
         if posted:
             logger.info("[ROADMAP] ✅ Roadmap update posted on startup")
         else:
-            logger.info("[ROADMAP] Roadmap update skipped (duplicate or no changes)")
+            logger.warning("[ROADMAP] Roadmap update skipped (duplicate or no changes) - this might be expected if message already exists")
     
     @commands.Cog.listener()
     async def on_ready(self):
