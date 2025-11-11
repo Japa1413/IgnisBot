@@ -9,7 +9,32 @@
 
 ### Prioridade ALTA (Concluído)
 
-1. **✅ Correção de Recursão Infinita no Cache**
+1. **✅ Deploy 24/7 e Operação Contínua (2025-01-11)**
+   - **Problema:** Bot precisava rodar localmente, dependia do computador estar ligado
+   - **Solução:** 
+     - Implementado deploy completo no Railway (cloud hosting)
+     - Dockerfile otimizado com multi-stage build
+     - Suporte para porta customizada do MySQL (DB_PORT)
+     - Adicionado pacote `cryptography` para autenticação MySQL
+     - Configuração completa de variáveis de ambiente
+     - Documentação completa de deployment
+   - **Arquivos:** `Dockerfile`, `railway.json`, `requirements.txt`, `utils/config.py`, `utils/database.py`
+   - **Status:** ✅ Bot operacional 24/7 no Railway
+   - **Documentação:** `docs/05_OPERACAO/HOSPEDAGEM_NUVEM.md`, `docs/05_OPERACAO/CONFIGURAR_HOST_MYSQL_RAILWAY.md`
+
+2. **✅ Sistema de Monitoramento de Recursos (2025-01-11)**
+   - **Funcionalidade:** Comando `/health` agora mostra consumo de recursos
+   - **Métricas:**
+     - Uso de memória (RAM)
+     - Uso de CPU
+     - Uso de GPU (se disponível)
+     - Uso de disco
+     - Status do banco de dados
+   - **Arquivos:** `utils/health_check.py`, `cogs/health.py`
+   - **Status:** ✅ Implementado e funcional
+   - **Dependência:** `psutil>=5.9.0`
+
+3. **✅ Correção de Recursão Infinita no Cache**
    - **Problema:** `get_user_cached()` chamava `get_user()`, que chamava `get_user_cached()` novamente
    - **Solução:** Modificado `get_user_cached()` para chamar diretamente `UserRepository.get(user_id, use_cache=False)`
    - **Arquivo:** `utils/cache.py`
@@ -198,6 +223,6 @@
 
 ---
 
-**Última Atualização:** 2025-11-07  
-**Próxima Revisão:** 2025-11-14
+**Última Atualização:** 2025-01-11  
+**Próxima Revisão:** 2025-01-18
 

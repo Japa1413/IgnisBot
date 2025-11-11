@@ -6,6 +6,63 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 🚀 Deploy 24/7 e Operação Contínua (2025-01-11)
+
+#### Added
+- **Deploy no Railway** - Bot agora roda 24/7 na nuvem
+  - Dockerfile otimizado com multi-stage build
+  - Suporte para porta customizada do MySQL (DB_PORT)
+  - Configuração completa de variáveis de ambiente
+  - Healthcheck desabilitado (bot não é servidor HTTP)
+- **Sistema de Monitoramento de Recursos** - Comando `/health` expandido
+  - Uso de memória (RAM) em MB e GB
+  - Uso de CPU em percentual
+  - Uso de GPU (se disponível via pynvml)
+  - Uso de disco em GB
+  - Status detalhado do banco de dados
+- **Documentação de Deployment** - Guias completos
+  - `docs/05_OPERACAO/HOSPEDAGEM_NUVEM.md` - Guia completo de hospedagem
+  - `docs/05_OPERACAO/CONFIGURAR_HOST_MYSQL_RAILWAY.md` - Configuração MySQL
+  - `docs/05_OPERACAO/RESOLVER_ERRO_CONEXAO_BANCO.md` - Troubleshooting
+  - `docs/05_OPERACAO/CORRIGIR_HOST_ERRADO_RAILWAY.md` - Correção de host
+  - `docs/05_OPERACAO/RESOLVER_VARIAVEIS_TEMPLATE_RAILWAY.md` - Variáveis template
+
+#### Changed
+- `utils/config.py` - Adicionado suporte para `DB_PORT` customizado
+- `utils/database.py` - Adicionado parâmetro `port` na conexão MySQL
+- `requirements.txt` - Adicionado `cryptography>=41.0.0` para autenticação MySQL
+- `Dockerfile` - Otimizado para produção com multi-stage build
+- `railway.json` - Configuração para Railway com healthcheck desabilitado
+
+#### Fixed
+- **ModuleNotFoundError** - Corrigido problema de importação de `utils.config` no Docker
+- **Erro de conexão MySQL** - Corrigido uso de host incorreto (ignisbot.railway.internal → host do MySQL)
+- **Autenticação MySQL** - Adicionado pacote `cryptography` para `caching_sha2_password`
+- **Porta customizada** - Adicionado suporte para portas não-padrão do MySQL
+
+#### Files Added
+- `Dockerfile` - Containerização do bot
+- `railway.json` - Configuração Railway
+- `render.yaml` - Configuração Render (alternativa)
+- `docker-compose.yml` - Compose para desenvolvimento
+- `.dockerignore` - Arquivos ignorados no build
+- `docs/05_OPERACAO/HOSPEDAGEM_NUVEM.md` - Guia de hospedagem
+- `docs/05_OPERACAO/CONFIGURAR_HOST_MYSQL_RAILWAY.md` - Config MySQL
+- `docs/05_OPERACAO/RESOLVER_ERRO_CONEXAO_BANCO.md` - Troubleshooting
+- `docs/05_OPERACAO/CORRIGIR_HOST_ERRADO_RAILWAY.md` - Correção host
+- `docs/05_OPERACAO/RESOLVER_VARIAVEIS_TEMPLATE_RAILWAY.md` - Variáveis
+- `docs/05_OPERACAO/COPIAR_VARIAVEIS_MYSQL_RAILWAY.md` - Guia visual
+- `docs/05_OPERACAO/CONECTAR_BANCO_SEM_SERVICE_CONNECTIONS.md` - Conexão alternativa
+
+#### Files Changed
+- `utils/config.py` - Adicionado `DB_PORT`
+- `utils/database.py` - Adicionado suporte para porta customizada
+- `requirements.txt` - Adicionado `cryptography`
+- `utils/health_check.py` - Adicionado `check_system_resources()`
+- `cogs/health.py` - Expandido para mostrar recursos do sistema
+
+---
+
 ### 🎮 Event Hosting System (2025-11-06)
 
 #### Added
