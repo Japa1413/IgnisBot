@@ -7,6 +7,30 @@
 
 ## ✅ MELHORIAS IMPLEMENTADAS
 
+### New Features
+
+- **Deploy 24/7 e Operação Contínua (2025-01-11)**
+  - Implementado deploy completo no Railway (cloud hosting)
+  - Dockerfile otimizado com multi-stage build
+  - Suporte para porta customizada do MySQL (DB_PORT)
+  - Adicionado pacote `cryptography` para autenticação MySQL
+  - Configuração completa de variáveis de ambiente
+  - Documentação completa de deployment
+
+- **Sistema de Monitoramento de Recursos (2025-01-11)**
+  - Comando `/health` agora mostra consumo de recursos
+  - Uso de memória (RAM) em MB e GB
+  - Uso de CPU em percentual
+  - Uso de GPU (se disponível)
+  - Uso de disco em GB
+  - Status detalhado do banco de dados
+
+- **Documentação de Deployment**
+  - Guias completos para hospedagem na nuvem
+  - Troubleshooting de conexão MySQL
+  - Configuração de variáveis de ambiente
+  - Guias visuais para setup no Railway
+
 ### Prioridade ALTA (Concluído)
 
 1. **✅ Deploy 24/7 e Operação Contínua (2025-01-11)**
@@ -34,25 +58,21 @@
    - **Status:** ✅ Implementado e funcional
    - **Dependência:** `psutil>=5.9.0`
 
-3. **✅ Correção de Recursão Infinita no Cache**
-   - **Problema:** `get_user_cached()` chamava `get_user()`, que chamava `get_user_cached()` novamente
-   - **Solução:** Modificado `get_user_cached()` para chamar diretamente `UserRepository.get(user_id, use_cache=False)`
-   - **Arquivo:** `utils/cache.py`
-   - **Status:** ✅ Resolvido e testado
+### Fixes & Improvements
 
-2. **✅ Otimização de Sincronização de Comandos**
-   - **Problema:** Sync sempre retornava 0 comandos e usava fallback global
-   - **Solução:** 
-     - Aumentado delay antes do sync para 2 segundos
-     - Adicionado `bot.tree.copy_global_to(guild=guild)` antes do sync
-     - Melhorado tratamento de erros com fallbacks
-     - Logging mais detalhado
-   - **Arquivo:** `ignis_main.py`
-   - **Status:** ✅ Melhorado - agora sincroniza 18 comandos diretamente para o guild
+- utils/config.py - Adicionado suporte para DB_PORT customizado
+- utils/database.py - Adicionado parâmetro port na conexão MySQL
+- requirements.txt - Adicionado cryptography>=41.0.0 para autenticação MySQL
+- Dockerfile - Otimizado para produção com multi-stage build
+- railway.json - Configuração para Railway com healthcheck desabilitado
+- ModuleNotFoundError - Corrigido problema de importação de utils.config no Docker
+- Erro de conexão MySQL - Corrigido uso de host incorreto (ignisbot.railway.internal → host do MySQL)
+- Autenticação MySQL - Adicionado pacote cryptography para caching_sha2_password
+- Porta customizada - Adicionado suporte para portas não-padrão do MySQL
 
 ### Prioridade MÉDIA (Concluído)
 
-3. **✅ Melhorar Tratamento de Timeouts**
+- **Melhorar Tratamento de Timeouts**
    - **Problema:** Erros "Unknown interaction" (404) devido a timeouts de 3 segundos
    - **Solução:** 
      - Criado `utils/interaction_helpers.py` com funções:
@@ -64,7 +84,7 @@
    - **Arquivo:** `utils/interaction_helpers.py`, `ignis_main.py`, `cogs/add.py`, `cogs/remove.py`
    - **Status:** ✅ Implementado
 
-4. **✅ Documentar Restrições de Canal**
+- **Documentar Restrições de Canal**
    - **Problema:** Usuários não sabiam onde usar comandos restritos
    - **Solução:**
      - Melhorado comando `/help` para incluir informações de restrições de canal
@@ -74,6 +94,23 @@
    - **Status:** ✅ Implementado
 
 ---
+
+## Upcoming Features
+
+- **Monitoramento e Validação das Correções**
+  - Monitorar logs por 24-48 horas para confirmar ausência de erros
+  - Testar comandos que usam cache em diferentes cenários
+  - Validar que sincronização de comandos continua funcionando
+
+- **Implementar Health Check System Avançado**
+  - Métricas de performance (tempo de resposta, taxa de erro)
+  - Alertas automáticos para problemas críticos
+  - Dashboard de monitoramento
+
+- **Melhorar Sistema de Logging**
+  - Implementar níveis de log mais granulares
+  - Adicionar contexto estruturado (user_id, command_name, duration)
+  - Criar dashboard de logs ou integração com ferramentas de monitoramento
 
 ## 🎯 PRÓXIMAS AÇÕES RECOMENDADAS
 

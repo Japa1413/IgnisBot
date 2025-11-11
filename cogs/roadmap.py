@@ -202,12 +202,13 @@ class RoadmapCog(commands.Cog):
                 logger.error(f"[ROADMAP] Channel {ROADMAP_CHANNEL_ID} not found")
                 return False
             
-            # Check if message with same title already exists
-            if await self._check_if_message_exists(roadmap_channel, roadmap_data['title']):
-                logger.info(f"[ROADMAP] Message with title '{roadmap_data['title']}' already exists, skipping to avoid duplicate")
-                # Update hash to prevent repeated checks
-                self.last_roadmap_hash = current_hash
-                return False
+            # Check if message with same title already exists (only if not forcing)
+            if not force_post:
+                if await self._check_if_message_exists(roadmap_channel, roadmap_data['title']):
+                    logger.info(f"[ROADMAP] Message with title '{roadmap_data['title']}' already exists, skipping to avoid duplicate")
+                    # Update hash to prevent repeated checks
+                    self.last_roadmap_hash = current_hash
+                    return False
             
             # Check if roadmap has changed since last post (unless forced)
             if not force_post and current_hash == self.last_roadmap_hash:
