@@ -353,8 +353,17 @@ class RoadmapCog(commands.Cog):
                 icon_url=SALAMANDERS_FOOTER_ICON
             )
             
+            # Log embed details before posting
+            logger.info(f"[ROADMAP] Embed ready - Fields: {len(embed.fields)}, Title: {embed.title}, Description length: {len(embed.description)}")
+            logger.info(f"[ROADMAP] About to post to channel {roadmap_channel.id} ({roadmap_channel.name})")
+            
             # Post the embed (without role mention to avoid mass pings)
-            await roadmap_channel.send(embed=embed)
+            try:
+                message = await roadmap_channel.send(embed=embed)
+                logger.info(f"[ROADMAP] ✅ Message posted successfully! Message ID: {message.id}, URL: {message.jump_url}")
+            except Exception as e:
+                logger.error(f"[ROADMAP] ❌ Error posting message: {e}", exc_info=True)
+                return False
             
             # Update tracking
             self.last_roadmap_post = datetime.now(timezone.utc)
