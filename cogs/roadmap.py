@@ -43,6 +43,7 @@ class RoadmapCog(commands.Cog):
         self.last_roadmap_post: Optional[datetime] = None
         self.last_roadmap_hash: Optional[str] = None
         self.startup_posted: bool = False  # Flag to ensure only one post on startup
+        self._posting_lock: asyncio.Lock = asyncio.Lock()  # Lock to prevent concurrent posts
         # Start automatic posting task
         self.auto_post_roadmap.start()
     
@@ -156,22 +157,23 @@ class RoadmapCog(commands.Cog):
                 ephemeral=True
             )
     
-    async def _check_if_message_exists(self, channel: discord.TextChannel, title: str, check_recent: bool = True) -> bool:
+    async def _check_if_message_exists(self, channel: discord.TextChannel, title: str, check_recent: bool = True, time_window: timedelta = timedelta(minutes=5)) -> bool:
         """
         Check if a message with the same title already exists in the channel.
         
         Args:
             channel: The channel to check
             title: The title to search for
-            check_recent: If True, only check messages from last 5 minutes
+            check_recent: If True, only check messages within time_window
+            time_window: Time window to check for recent messages
         
         Returns:
             True if message exists, False otherwise
         """
         try:
-            # For recent check, only look at last 10 messages from last 5 minutes
-            limit = 10 if check_recent else 20
-            cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=5) if check_recent else None
+            # For recent check, only look at last 15 messages within time window
+            limit = 15 if check_recent else 30
+            cutoff_time = datetime.now(timezone.utc) - time_window if check_recent else None
             
             async for message in channel.history(limit=limit):
                 # Skip if checking recent and message is too old
@@ -214,6 +216,14 @@ class RoadmapCog(commands.Cog):
         Returns:
             True if posted, False otherwise
         """
+        # Use lock to prevent concurrent posts
+        async with self._posting_lock:
+            return await self._post_roadmap_automatically_internal(force_post)
+    
+    async def _post_roadmap_automatically_internal(self, force_post: bool = False) -> bool:
+        """
+        Internal method to post roadmap - called with lock held.
+        """
         try:
             # Get roadmap data from documentation
             roadmap_data = get_latest_roadmap_data()
@@ -233,19 +243,21 @@ class RoadmapCog(commands.Cog):
                 return False
             
             # Check if message with same title already exists
-            # For force_post, check recent messages (last 5 minutes)
+            # For force_post, check recent messages (last 10 minutes) more strictly
             # For normal post, check all recent messages
             check_recent = force_post  # Only check recent for force_post
-            if await self._check_if_message_exists(roadmap_channel, roadmap_data['title'], check_recent=check_recent):
-                logger.info(f"[ROADMAP] Message with title '{roadmap_data['title']}' already exists, skipping to avoid duplicate")
+            time_window = timedelta(minutes=10) if force_post else timedelta(minutes=30)
+            
+            if await self._check_if_message_exists(roadmap_channel, roadmap_data['title'], check_recent=check_recent, time_window=time_window):
+                logger.info(f"[ROADMAP] Message with title '{roadmap_data['title']}' already exists (within {time_window.total_seconds()/60:.0f}min), skipping to avoid duplicate")
                 # Update hash to prevent repeated checks
                 self.last_roadmap_hash = current_hash
                 return False
             
-            # Additional check: if we posted very recently (within last 2 minutes), skip
+            # Additional check: if we posted very recently (within last 5 minutes), skip
             if self.last_roadmap_post:
                 time_since_last = datetime.now(timezone.utc) - self.last_roadmap_post
-                if time_since_last < timedelta(minutes=2):
+                if time_since_last < timedelta(minutes=5):
                     logger.info(f"[ROADMAP] Posted recently ({time_since_last.total_seconds():.0f}s ago), skipping to avoid duplicate")
                     return False
             
@@ -260,6 +272,8 @@ class RoadmapCog(commands.Cog):
                 logger.info(f"[ROADMAP] Force post with same content, using original title")
             
             logger.info(f"[ROADMAP] Posting roadmap update. Old hash: {self.last_roadmap_hash[:8] if self.last_roadmap_hash else 'None'}..., New hash: {current_hash[:8]}...")
+            logger.info(f"[ROADMAP] Roadmap data - Features: {len(roadmap_data.get('features', []))}, Fixes: {len(roadmap_data.get('fixes', []))}, Upcoming: {len(roadmap_data.get('upcoming', []))}")
+            logger.info(f"[ROADMAP] Title: {roadmap_data.get('title')}, Description: {roadmap_data.get('description')[:100]}...")
             
             # Get Salamanders role
             guild = roadmap_channel.guild
@@ -304,10 +318,14 @@ class RoadmapCog(commands.Cog):
                     inline=False
                 )
             
-            # If no meaningful content, add a note
+            # Always add content - if no features/fixes, show what we have
+            # But prioritize showing actual content
             if not any([features_text and features_text != "None", 
                        fixes_text and fixes_text != "None", 
                        upcoming_text and upcoming_text != "None"]):
+                # If we have features or fixes in the data but they're empty after formatting, log it
+                if roadmap_data.get('features') or roadmap_data.get('fixes'):
+                    logger.warning(f"[ROADMAP] Has data but formatted empty - Features: {len(roadmap_data.get('features', []))}, Fixes: {len(roadmap_data.get('fixes', []))}")
                 embed.add_field(
                     name="ℹ️ Status",
                     value="Development continues with ongoing improvements. Check documentation for details.",
@@ -364,23 +382,28 @@ class RoadmapCog(commands.Cog):
         """Clean up when cog is unloaded."""
         self.auto_post_roadmap.cancel()
     
-    @commands.Cog.listener()
-    async def on_ready(self):
-        """Post roadmap on bot startup - always post with latest information."""
-        # Prevent multiple posts on reconnection
-        if self.startup_posted:
+    async def _post_on_startup(self):
+        """Post roadmap on bot startup - called from setup_hook with delay."""
+        # Use bot-level flag to prevent multiple cogs from posting
+        if not hasattr(self.bot, 'roadmap_startup_posted'):
+            self.bot.roadmap_startup_posted = False
+        
+        # Prevent multiple posts
+        if self.bot.roadmap_startup_posted or self.startup_posted:
             logger.debug("[ROADMAP] Startup post already done, skipping")
             return
         
-        # Wait a bit for everything to initialize
-        await asyncio.sleep(30)  # Wait 30 seconds after ready
+        # Wait for bot to be fully ready
+        await self.bot.wait_until_ready()
+        await asyncio.sleep(35)  # Wait 35 seconds after ready for all cogs to load
         
-        # Check if bot is actually ready (not a reconnection)
+        # Double-check bot is ready
         if not self.bot.is_ready():
             logger.debug("[ROADMAP] Bot not ready yet, skipping startup post")
             return
         
-        # Mark as posted BEFORE posting to prevent race conditions
+        # Mark as posted BEFORE posting to prevent race conditions (both flags)
+        self.bot.roadmap_startup_posted = True
         self.startup_posted = True
         
         # Always post on startup (force_post=True) to ensure latest info is shared
@@ -391,6 +414,26 @@ class RoadmapCog(commands.Cog):
             logger.info("[ROADMAP] ✅ Roadmap update posted on startup")
         else:
             logger.info("[ROADMAP] Roadmap update skipped (duplicate or no changes)")
+    
+    @commands.Cog.listener()
+    async def on_ready(self):
+        """Post roadmap on bot startup - only on first ready."""
+        # Only post on first ready (not reconnections)
+        if not hasattr(self.bot, 'ready_count'):
+            self.bot.ready_count = 0
+        self.bot.ready_count += 1
+        
+        # Only post on first ready and if not already posted
+        if self.bot.ready_count == 1 and not self.startup_posted:
+            # Check bot-level flag too
+            if not hasattr(self.bot, 'roadmap_startup_posted') or not self.bot.roadmap_startup_posted:
+                # Schedule post with delay to avoid conflicts
+                logger.info(f"[ROADMAP] Scheduling startup post (ready_count={self.bot.ready_count})")
+                self.bot.loop.create_task(self._post_on_startup())
+            else:
+                logger.debug("[ROADMAP] Startup post already scheduled by another instance")
+        else:
+            logger.debug(f"[ROADMAP] Bot reconnected (ready_count={self.bot.ready_count}, startup_posted={self.startup_posted}), skipping startup post")
 
 
 async def setup(bot: commands.Bot):
