@@ -1,6 +1,6 @@
 # IgnisBot Dockerfile
 # Multi-stage build for optimized image size
-# Force rebuild: 2025-01-11-03:00:00
+# Force rebuild: 2025-01-11-03:10:00
 
 FROM python:3.11-slim as builder
 
@@ -53,6 +53,10 @@ COPY --chown=ignisbot:ignisbot domain/ /app/domain/
 # Copy config directory if it exists (will be created if missing)
 COPY --chown=ignisbot:ignisbot config/ /app/config/
 
+# Copy documentation files needed for roadmap parser
+COPY --chown=ignisbot:ignisbot CHANGELOG.md /app/
+COPY --chown=ignisbot:ignisbot docs/02_ARQUITETURA/ /app/docs/02_ARQUITETURA/
+
 # Set environment variables BEFORE switching user
 ENV PATH=/home/ignisbot/.local/bin:$PATH
 ENV PYTHONPATH=/app:$PYTHONPATH
@@ -68,6 +72,8 @@ RUN echo "=== Verifying copied files ===" && \
     test -f /app/utils/config.py && echo "✓ utils/config.py exists" || echo "✗ utils/config.py MISSING" && \
     test -f /app/utils/__init__.py && echo "✓ utils/__init__.py exists" || echo "✗ utils/__init__.py MISSING" && \
     test -f /app/ignis_main.py && echo "✓ ignis_main.py exists" || echo "✗ ignis_main.py MISSING" && \
+    test -f /app/CHANGELOG.md && echo "✓ CHANGELOG.md exists" || echo "✗ CHANGELOG.md MISSING" && \
+    test -f /app/docs/02_ARQUITETURA/ROADMAP_MELHORIAS.md && echo "✓ ROADMAP_MELHORIAS.md exists" || echo "✗ ROADMAP_MELHORIAS.md MISSING" && \
     echo "--- Python path test (as root) ---" && \
     python -c "import sys; print('PYTHONPATH:', sys.path)" && \
     python -c "import os; print('Current dir:', os.getcwd()); print('Files in /app:', os.listdir('/app'))" && \

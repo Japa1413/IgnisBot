@@ -29,10 +29,16 @@ logs/
 .git/
 .gitignore
 
-# Documentation (keep README)
-docs/
+# Documentation (keep README and roadmap files)
+docs/05_OPERACAO/
+docs/03_DESENVOLVIMENTO/
+docs/04_TESTES/
 *.md
 !README.md
+!CHANGELOG.md
+!docs/02_ARQUITETURA/ROADMAP_MELHORIAS.md
+!docs/02_ARQUITETURA/IMPLEMENTACOES_COMPLETAS.md
+!docs/02_ARQUITETURA/STATUS_PROJETO.md
 
 # Scripts (not needed in container, but keep __init__.py if exists)
 scripts/*
