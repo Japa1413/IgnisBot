@@ -1,6 +1,6 @@
 # IgnisBot Dockerfile
 # Multi-stage build for optimized image size
-# Force rebuild: 2025-01-11-02:00:00
+# Force rebuild: 2025-01-11-03:00:00
 
 FROM python:3.11-slim as builder
 
@@ -50,7 +50,8 @@ COPY --chown=ignisbot:ignisbot services/ /app/services/
 COPY --chown=ignisbot:ignisbot repositories/ /app/repositories/
 COPY --chown=ignisbot:ignisbot events/ /app/events/
 COPY --chown=ignisbot:ignisbot domain/ /app/domain/
-COPY --chown=ignisbot:ignisbot config/ /app/config/ 2>/dev/null || true
+# Copy config directory if it exists (will be created if missing)
+COPY --chown=ignisbot:ignisbot config/ /app/config/
 
 # Set environment variables BEFORE switching user
 ENV PATH=/home/ignisbot/.local/bin:$PATH
