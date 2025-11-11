@@ -42,11 +42,17 @@ COPY --from=builder /root/.local /home/ignisbot/.local
 COPY --chown=ignisbot:ignisbot . .
 
 # Verify files were copied (debug step - will show in build logs)
+# This runs AFTER copying, so we can verify what was actually copied
 RUN ls -la /app/ && \
+    echo "--- Contents of /app/utils/ ---" && \
     ls -la /app/utils/ && \
+    echo "--- Checking for required files ---" && \
     test -f /app/utils/config.py && echo "✓ utils/config.py exists" || echo "✗ utils/config.py MISSING" && \
     test -f /app/utils/__init__.py && echo "✓ utils/__init__.py exists" || echo "✗ utils/__init__.py MISSING" && \
-    test -f /app/ignis_main.py && echo "✓ ignis_main.py exists" || echo "✗ ignis_main.py MISSING"
+    test -f /app/ignis_main.py && echo "✓ ignis_main.py exists" || echo "✗ ignis_main.py MISSING" && \
+    echo "--- Python path test ---" && \
+    python -c "import sys; print('PYTHONPATH:', sys.path)" && \
+    python -c "import os; print('Current dir:', os.getcwd()); print('Files in /app:', os.listdir('/app'))"
 
 # Switch to non-root user
 USER ignisbot
