@@ -2,6 +2,18 @@
 from __future__ import annotations
 
 import asyncio
+import sys
+import os
+
+# Ensure /app is in Python path (for Docker/Railway deployment)
+if '/app' not in sys.path:
+    sys.path.insert(0, '/app')
+
+# Also ensure current directory is in path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
 import discord
 from discord.ext import commands
 from discord import app_commands
