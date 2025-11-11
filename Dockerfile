@@ -1,6 +1,6 @@
 # IgnisBot Dockerfile
 # Multi-stage build for optimized image size
-# Force rebuild: 2025-01-11-01:00:00
+# Force rebuild: 2025-01-11-02:00:00
 
 FROM python:3.11-slim as builder
 
@@ -38,9 +38,19 @@ WORKDIR /app
 # Copy Python dependencies from builder
 COPY --from=builder /root/.local /home/ignisbot/.local
 
-# Copy application files FIRST
-# Copy everything except what's in .dockerignore
-COPY --chown=ignisbot:ignisbot . .
+# Copy application files - copy explicitly to ensure nothing is missed
+# First copy root Python files
+COPY --chown=ignisbot:ignisbot ignis_main.py /app/
+COPY --chown=ignisbot:ignisbot requirements.txt /app/
+
+# Copy all directories explicitly
+COPY --chown=ignisbot:ignisbot utils/ /app/utils/
+COPY --chown=ignisbot:ignisbot cogs/ /app/cogs/
+COPY --chown=ignisbot:ignisbot services/ /app/services/
+COPY --chown=ignisbot:ignisbot repositories/ /app/repositories/
+COPY --chown=ignisbot:ignisbot events/ /app/events/
+COPY --chown=ignisbot:ignisbot domain/ /app/domain/
+COPY --chown=ignisbot:ignisbot config/ /app/config/ 2>/dev/null || true
 
 # Set environment variables BEFORE switching user
 ENV PATH=/home/ignisbot/.local/bin:$PATH
