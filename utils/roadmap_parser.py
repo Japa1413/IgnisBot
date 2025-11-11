@@ -372,9 +372,89 @@ def translate_to_english(text: str) -> str:
     Translate Portuguese text to English for roadmap items.
     This is a basic implementation - for production, consider using a proper translation API.
     """
-    # Common translations (expanded dictionary)
-    translations = {
+    # First, check if text is already in English (simple heuristic)
+    # If text contains common Portuguese words, translate it
+    portuguese_indicators = [
+        'monitoramento', 'validação', 'correções', 'implementar', 'melhorar',
+        'sistema', 'logs', 'comandos', 'cache', 'sincronização', 'métricas',
+        'performance', 'alertas', 'dashboard', 'níveis', 'contexto', 'estruturado',
+        'integração', 'ferramentas', 'Monitoramento', 'Validação', 'Correções',
+        'Implementar', 'Melhorar', 'Sistema', 'Logs', 'Comandos', 'Cache',
+        'Sincronização', 'Métricas', 'Performance', 'Alertas', 'Dashboard',
+        'Níveis', 'Contexto', 'Estruturado', 'Integração', 'Ferramentas'
+    ]
+    
+    # Check if text contains Portuguese indicators
+    has_portuguese = any(indicator.lower() in text.lower() for indicator in portuguese_indicators)
+    
+    # If no Portuguese indicators found and text looks like English, return as-is
+    if not has_portuguese and any(word.isalpha() and word[0].isupper() for word in text.split()[:3]):
+        # Likely already in English
+        return text
+    
+    # Common phrase translations (order matters - longer phrases first)
+    phrase_translations = {
+        # Upcoming features specific translations
+        "Monitoramento e Validação das Correções": "Monitoring and Validation of Fixes",
+        "Monitorar logs por 24-48 horas para confirmar ausência de erros": "Monitor logs for 24-48 hours to confirm absence of errors",
+        "Testar comandos que usam cache em diferentes cenários": "Test commands that use cache in different scenarios",
+        "Validar que sincronização de comandos continua funcionando": "Validate that command synchronization continues working",
+        "Implementar Health Check System Avançado": "Implement Advanced Health Check System",
+        "Métricas de performance (tempo de resposta, taxa de erro)": "Performance metrics (response time, error rate)",
+        "Alertas automáticos para problemas críticos": "Automatic alerts for critical issues",
+        "Dashboard de monitoramento": "Monitoring dashboard",
+        "Melhorar Sistema de Logging": "Improve Logging System",
+        "Implementar níveis de log mais granulares": "Implement more granular log levels",
+        "Adicionar contexto estruturado (user_id, command_name, duration)": "Add structured context (user_id, command_name, duration)",
+        "Criar dashboard de logs ou integração com ferramentas de monitoramento": "Create log dashboard or integration with monitoring tools",
+        # Common phrases
+        "Documentação de agendamento": "Scheduling documentation",
+        "Sistema de": "System for",
+        "Comando de": "Command for",
+        "Botão de": "Button for",
+        "Canal de": "Channel for",
+        "Melhorias no": "Improvements to",
+        "Correções no": "Fixes to",
+        "Implementação de": "Implementation of",
         # Common words
+        "monitoramento": "monitoring",
+        "Monitoramento": "Monitoring",
+        "validação": "validation",
+        "Validação": "Validation",
+        "correções": "fixes",
+        "Correções": "Fixes",
+        "implementar": "implement",
+        "Implementar": "Implement",
+        "melhorar": "improve",
+        "Melhorar": "Improve",
+        "sistema": "system",
+        "Sistema": "System",
+        "logs": "logs",
+        "Logs": "Logs",
+        "comandos": "commands",
+        "Comandos": "Commands",
+        "cache": "cache",
+        "Cache": "Cache",
+        "sincronização": "synchronization",
+        "Sincronização": "Synchronization",
+        "métricas": "metrics",
+        "Métricas": "Metrics",
+        "performance": "performance",
+        "Performance": "Performance",
+        "alertas": "alerts",
+        "Alertas": "Alerts",
+        "dashboard": "dashboard",
+        "Dashboard": "Dashboard",
+        "níveis": "levels",
+        "Níveis": "Levels",
+        "contexto": "context",
+        "Contexto": "Context",
+        "estruturado": "structured",
+        "Estruturado": "Structured",
+        "integração": "integration",
+        "Integração": "Integration",
+        "ferramentas": "tools",
+        "Ferramentas": "Tools",
         "documentação": "documentation",
         "Documentação": "Documentation",
         "agendamento": "scheduling",
@@ -383,12 +463,8 @@ def translate_to_english(text: str) -> str:
         "Implementação": "Implementation",
         "melhorias": "improvements",
         "Melhorias": "Improvements",
-        "correções": "fixes",
-        "Correções": "Fixes",
         "funcionalidades": "features",
         "Funcionalidades": "Features",
-        "sistema": "system",
-        "Sistema": "System",
         "comando": "command",
         "Comando": "Command",
         "botão": "button",
@@ -399,7 +475,6 @@ def translate_to_english(text: str) -> str:
         "Atualização": "Update",
         "desenvolvimento": "development",
         "Desenvolvimento": "Development",
-        # Common phrases
         "de": "of",
         "De": "Of",
         "para": "for",
@@ -408,20 +483,14 @@ def translate_to_english(text: str) -> str:
         "Com": "With",
         "sem": "without",
         "Sem": "Without",
-        # Technical terms
         "automação": "automation",
         "Automação": "Automation",
-        "integração": "integration",
-        "Integração": "Integration",
         "configuração": "configuration",
         "Configuração": "Configuration",
         "otimização": "optimization",
         "Otimização": "Optimization",
-        "monitoramento": "monitoring",
-        "Monitoramento": "Monitoring",
         "gerenciamento": "management",
         "Gerenciamento": "Management",
-        # Actions
         "criado": "created",
         "Criado": "Created",
         "adicionado": "added",
@@ -440,25 +509,40 @@ def translate_to_english(text: str) -> str:
     # Replace longer phrases first, then individual words
     result = text
     
-    # Replace common phrases
-    phrase_translations = {
-        "Documentação de agendamento": "Scheduling documentation",
-        "Sistema de": "System for",
-        "Comando de": "Command for",
-        "Botão de": "Button for",
-        "Canal de": "Channel for",
-        "Melhorias no": "Improvements to",
-        "Correções no": "Fixes to",
-        "Implementação de": "Implementation of",
-    }
+    # Replace common phrases (longer first to avoid partial matches)
+    for pt_phrase, en_phrase in sorted(phrase_translations.items(), key=lambda x: len(x[0]), reverse=True):
+        if pt_phrase in result:
+            result = result.replace(pt_phrase, en_phrase)
     
-    for pt_phrase, en_phrase in phrase_translations.items():
-        result = result.replace(pt_phrase, en_phrase)
-    
-    # Replace individual words
-    for pt, en in translations.items():
-        # Use word boundaries to avoid partial replacements
-        result = re.sub(r'\b' + re.escape(pt) + r'\b', en, result)
+    # If still contains Portuguese words, try word-by-word replacement
+    # Only if the result still looks like Portuguese
+    if any(word in result.lower() for word in ['monitoramento', 'validação', 'correções', 'implementar', 'melhorar']):
+        # Try individual word replacement for remaining words
+        word_translations = {
+            "monitoramento": "monitoring",
+            "validação": "validation",
+            "correções": "fixes",
+            "implementar": "implement",
+            "melhorar": "improve",
+            "sistema": "system",
+            "logs": "logs",
+            "comandos": "commands",
+            "cache": "cache",
+            "sincronização": "synchronization",
+            "métricas": "metrics",
+            "performance": "performance",
+            "alertas": "alerts",
+            "dashboard": "dashboard",
+            "níveis": "levels",
+            "contexto": "context",
+            "estruturado": "structured",
+            "integração": "integration",
+            "ferramentas": "tools",
+        }
+        
+        for pt, en in word_translations.items():
+            # Use word boundaries to avoid partial replacements
+            result = re.sub(r'\b' + re.escape(pt) + r'\b', en, result, flags=re.IGNORECASE)
     
     return result
 
@@ -471,14 +555,16 @@ def format_roadmap_items(items: List[str]) -> str:
     # Format as bullet points, limit length
     formatted = []
     for item in items:
-        # Clean up markdown formatting
+        # Clean up markdown formatting first
         item = re.sub(r'\*\*(.+?)\*\*', r'\1', item)  # Remove bold
         item = re.sub(r'`(.+?)`', r'\1', item)  # Remove code blocks
+        item = re.sub(r'\[(.+?)\]\(.+?\)', r'\1', item)  # Remove links [text](url) -> text
         item = item.strip()
         
-        # Translate to English if needed
+        # Translate to English if needed (ALWAYS translate to ensure English)
         item = translate_to_english(item)
         
+        # Final cleanup - remove any remaining Portuguese indicators
         if item:
             formatted.append(f"• {item}")
     

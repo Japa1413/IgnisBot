@@ -298,10 +298,19 @@ class RoadmapCog(commands.Cog):
             salamanders_role = guild.get_role(SALAMANDERS_ROLE_ID)
             role_mention = salamanders_role.mention if salamanders_role else "@Salamanders"
             
+            # Ensure title and description are in English
+            title = roadmap_data['title']
+            description = roadmap_data['description']
+            
+            # Import translate function to ensure English
+            from utils.roadmap_parser import translate_to_english
+            title = translate_to_english(title)
+            description = translate_to_english(description)
+            
             # Create embed with unique identifier in footer to prevent duplicates
             embed = discord.Embed(
-                title=f"🚀 {roadmap_data['title']}",
-                description=roadmap_data['description'],
+                title=f"🚀 {title}",
+                description=description,
                 color=SALAMANDERS_GREEN,
                 timestamp=datetime.now(timezone.utc)
             )
