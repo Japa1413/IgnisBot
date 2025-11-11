@@ -242,24 +242,39 @@ class RoadmapCog(commands.Cog):
                 logger.error(f"[ROADMAP] Channel {ROADMAP_CHANNEL_ID} not found")
                 return False
             
-            # Check if message with same title already exists
-            # For force_post, check recent messages (last 10 minutes) more strictly
-            # For normal post, check all recent messages
-            check_recent = force_post  # Only check recent for force_post
-            time_window = timedelta(minutes=10) if force_post else timedelta(minutes=30)
-            
-            if await self._check_if_message_exists(roadmap_channel, roadmap_data['title'], check_recent=check_recent, time_window=time_window):
-                logger.info(f"[ROADMAP] Message with title '{roadmap_data['title']}' already exists (within {time_window.total_seconds()/60:.0f}min), skipping to avoid duplicate")
-                # Update hash to prevent repeated checks
-                self.last_roadmap_hash = current_hash
-                return False
-            
-            # Additional check: if we posted very recently (within last 5 minutes), skip
-            if self.last_roadmap_post:
-                time_since_last = datetime.now(timezone.utc) - self.last_roadmap_post
-                if time_since_last < timedelta(minutes=5):
-                    logger.info(f"[ROADMAP] Posted recently ({time_since_last.total_seconds():.0f}s ago), skipping to avoid duplicate")
+            # For force_post on startup, be more lenient with duplicate detection
+            # Only check if we posted in the last 2 minutes (very recent)
+            if force_post:
+                # On startup, only skip if we posted VERY recently (last 2 minutes)
+                if self.last_roadmap_post:
+                    time_since_last = datetime.now(timezone.utc) - self.last_roadmap_post
+                    if time_since_last < timedelta(minutes=2):
+                        logger.info(f"[ROADMAP] Posted very recently ({time_since_last.total_seconds():.0f}s ago), skipping to avoid duplicate")
+                        return False
+                
+                # Check for exact duplicate in last 2 minutes only
+                time_window = timedelta(minutes=2)
+                if await self._check_if_message_exists(roadmap_channel, roadmap_data['title'], check_recent=True, time_window=time_window):
+                    logger.info(f"[ROADMAP] Message with same title exists in last 2 minutes, skipping")
+                    self.last_roadmap_hash = current_hash
                     return False
+            else:
+                # For normal posts, check more strictly
+                check_recent = True
+                time_window = timedelta(minutes=30)
+                
+                if await self._check_if_message_exists(roadmap_channel, roadmap_data['title'], check_recent=check_recent, time_window=time_window):
+                    logger.info(f"[ROADMAP] Message with title '{roadmap_data['title']}' already exists (within {time_window.total_seconds()/60:.0f}min), skipping to avoid duplicate")
+                    # Update hash to prevent repeated checks
+                    self.last_roadmap_hash = current_hash
+                    return False
+                
+                # Additional check: if we posted recently (within last 5 minutes), skip
+                if self.last_roadmap_post:
+                    time_since_last = datetime.now(timezone.utc) - self.last_roadmap_post
+                    if time_since_last < timedelta(minutes=5):
+                        logger.info(f"[ROADMAP] Posted recently ({time_since_last.total_seconds():.0f}s ago), skipping to avoid duplicate")
+                        return False
             
             # Check if roadmap has changed since last post (unless forced)
             if not force_post and current_hash == self.last_roadmap_hash:
