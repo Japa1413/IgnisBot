@@ -1,6 +1,6 @@
 # IgnisBot Dockerfile
 # Multi-stage build for optimized image size
-# Force rebuild: 2025-01-11-00:00:00
+# Force rebuild: 2025-01-11-01:00:00
 
 FROM python:3.11-slim as builder
 
@@ -42,8 +42,13 @@ COPY --from=builder /root/.local /home/ignisbot/.local
 # Copy everything except what's in .dockerignore
 COPY --chown=ignisbot:ignisbot . .
 
-# Verify files were copied (MUST run AFTER COPY)
-# This step will invalidate cache if COPY changes
+# Set environment variables BEFORE switching user
+ENV PATH=/home/ignisbot/.local/bin:$PATH
+ENV PYTHONPATH=/app:$PYTHONPATH
+ENV PYTHONUNBUFFERED=1
+
+# Verify files were copied (MUST run AFTER COPY, BEFORE USER switch)
+# Run as root to verify, then switch user
 RUN echo "=== Verifying copied files ===" && \
     ls -la /app/ && \
     echo "--- Contents of /app/utils/ ---" && \
@@ -52,19 +57,16 @@ RUN echo "=== Verifying copied files ===" && \
     test -f /app/utils/config.py && echo "✓ utils/config.py exists" || echo "✗ utils/config.py MISSING" && \
     test -f /app/utils/__init__.py && echo "✓ utils/__init__.py exists" || echo "✗ utils/__init__.py MISSING" && \
     test -f /app/ignis_main.py && echo "✓ ignis_main.py exists" || echo "✗ ignis_main.py MISSING" && \
-    echo "--- Python path test ---" && \
+    echo "--- Python path test (as root) ---" && \
     python -c "import sys; print('PYTHONPATH:', sys.path)" && \
     python -c "import os; print('Current dir:', os.getcwd()); print('Files in /app:', os.listdir('/app'))" && \
+    echo "--- Testing import (as root) ---" && \
+    PYTHONPATH=/app python -c "from utils.config import TOKEN; print('✓ Import successful!')" || echo "✗ Import failed" && \
     echo "=== Verification complete ==="
 
-# Switch to non-root user
+# Switch to non-root user (AFTER setting ENV and verification)
 USER ignisbot
 
-# Add local bin to PATH and set PYTHONPATH
-ENV PATH=/home/ignisbot/.local/bin:$PATH
-ENV PYTHONPATH=/app:$PYTHONPATH
-ENV PYTHONUNBUFFERED=1
-
-# Run the bot
-CMD ["python", "ignis_main.py"]
+# Run the bot with explicit PYTHONPATH
+CMD ["sh", "-c", "PYTHONPATH=/app:$PYTHONPATH python ignis_main.py"]
 
