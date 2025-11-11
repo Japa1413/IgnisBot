@@ -1,5 +1,6 @@
 # IgnisBot Dockerfile
 # Multi-stage build for optimized image size
+# Force rebuild: 2025-01-11-00:00:00
 
 FROM python:3.11-slim as builder
 
@@ -37,13 +38,14 @@ WORKDIR /app
 # Copy Python dependencies from builder
 COPY --from=builder /root/.local /home/ignisbot/.local
 
-# Copy application files
+# Copy application files FIRST
 # Copy everything except what's in .dockerignore
 COPY --chown=ignisbot:ignisbot . .
 
-# Verify files were copied (debug step - will show in build logs)
-# This runs AFTER copying, so we can verify what was actually copied
-RUN ls -la /app/ && \
+# Verify files were copied (MUST run AFTER COPY)
+# This step will invalidate cache if COPY changes
+RUN echo "=== Verifying copied files ===" && \
+    ls -la /app/ && \
     echo "--- Contents of /app/utils/ ---" && \
     ls -la /app/utils/ && \
     echo "--- Checking for required files ---" && \
@@ -52,7 +54,8 @@ RUN ls -la /app/ && \
     test -f /app/ignis_main.py && echo "✓ ignis_main.py exists" || echo "✗ ignis_main.py MISSING" && \
     echo "--- Python path test ---" && \
     python -c "import sys; print('PYTHONPATH:', sys.path)" && \
-    python -c "import os; print('Current dir:', os.getcwd()); print('Files in /app:', os.listdir('/app'))"
+    python -c "import os; print('Current dir:', os.getcwd()); print('Files in /app:', os.listdir('/app'))" && \
+    echo "=== Verification complete ==="
 
 # Switch to non-root user
 USER ignisbot
